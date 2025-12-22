@@ -1,0 +1,20 @@
+{
+  "name": "hello-claude-code",
+  "version": "1.0.0",
+  "description": "Minimalna spletna aplikacija z Node.js in Express",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "web-app"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
