@@ -227,13 +227,28 @@ router.post('/admin/import-historical', async (req, res) => {
     const fs = require('fs').promises;
     const path = require('path');
     const migrationPath = path.join(__dirname, '..', 'migrations', '002_import_historical_data.sql');
+
+    console.log('📁 Migration path:', migrationPath);
+
+    // Check if file exists
+    try {
+      await fs.access(migrationPath);
+      console.log('✅ Migration file found');
+    } catch (err) {
+      console.error('❌ Migration file not found:', err.message);
+      throw new Error(`Migration file not found at ${migrationPath}`);
+    }
+
     let sql = await fs.readFile(migrationPath, 'utf8');
+    console.log(`📄 SQL file size: ${sql.length} bytes`);
 
     // Split by semicolons and extract INSERT statements
     const statements = sql
       .split(';')
       .map(s => s.trim())
       .filter(s => s && s.startsWith('INSERT'));
+
+    console.log(`🔍 Found ${statements.length} INSERT statements`);
 
     let insertedCount = 0;
     let skippedCount = 0;
