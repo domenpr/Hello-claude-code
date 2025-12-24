@@ -479,7 +479,7 @@ app.get('/', (req, res) => {
                   <div class="stat">🤕 Bolečina: <strong>\${entry.stomach_pain}/5</strong></div>
                   <div class="stat">💩 Blato: <strong>\${entry.stool}/5</strong> \${entry.stool === 4 ? '✅' : ''}</div>
                 </div>
-                \${entry.note ? \`<div class="entry-note">"\\${entry.note}"</div>\` : ''}
+                \${entry.note ? '<div class="entry-note">"' + entry.note + '"</div>' : ''}
               </div>
             \`;
           }).join('');
