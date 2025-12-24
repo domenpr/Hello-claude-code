@@ -1,8 +1,9 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
+const fs = require('fs').promises;
 const apiRoutes = require('./routes');
-const { initializeDatabase } = require('./db');
+const { initializeDatabase, pool } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -634,11 +635,85 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Funkcija za samodejni import zgodovinskih podatkov ob zagonu
+async function runHistoricalImportIfEnabled() {
+  // Preveri ali je import omogočen
+  if (process.env.ENABLE_IMPORT !== '1') {
+    console.log('ℹ️  Historical data import disabled (set ENABLE_IMPORT=1 to enable)');
+    return;
+  }
+
+  try {
+    console.log('🔄 Starting historical data import...');
+
+    // Ustvari unique constraint za idempotentnost
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS entries_timestamp_unique ON entries(timestamp)
+    `);
+    console.log('   - Unique index on timestamp created');
+
+    // Pot do migration datoteke
+    const migrationPath = path.join(__dirname, '..', 'migrations', '002_import_historical_data.sql');
+    console.log(`📁 Reading migration file: ${migrationPath}`);
+
+    // Preveri ali datoteka obstaja
+    try {
+      await fs.access(migrationPath);
+    } catch (err) {
+      throw new Error(`Migration file not found at ${migrationPath}`);
+    }
+
+    // Preberi SQL datoteko
+    const sqlContent = await fs.readFile(migrationPath, 'utf8');
+    console.log(`📄 SQL file size: ${sqlContent.length} bytes`);
+
+    // Razdeli na INSERT stavke
+    const statements = sqlContent
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => s && s.startsWith('INSERT'));
+
+    console.log(`🔍 Found ${statements.length} INSERT statements`);
+
+    if (statements.length === 0) {
+      console.log('⚠️  No INSERT statements found in migration file');
+      return;
+    }
+
+    // Izvedi vsak INSERT z ON CONFLICT DO NOTHING za idempotentnost
+    let insertedCount = 0;
+    let skippedCount = 0;
+
+    for (const statement of statements) {
+      const modifiedStatement = statement + ' ON CONFLICT (timestamp) DO NOTHING';
+      const result = await pool.query(modifiedStatement);
+      insertedCount += result.rowCount;
+
+      // Preštej preskočene vnose
+      const expectedRows = (statement.match(/\),/g) || []).length + 1;
+      skippedCount += (expectedRows - result.rowCount);
+    }
+
+    console.log('✅ Historical data import completed');
+    console.log(`   - Inserted: ${insertedCount} entries`);
+    console.log(`   - Skipped: ${skippedCount} entries (already exist)`);
+    console.log(`   - Total statements: ${statements.length}`);
+
+  } catch (error) {
+    console.error('❌ Historical data import failed:', error.message);
+    console.error('   Stack:', error.stack);
+    // Ne stopiraj aplikacije, samo loga napako
+  }
+}
+
 // Inicializacija in zagon serverja
 async function startServer() {
   try {
     // Inicializiraj bazo (ustvari tabelo če ne obstaja)
     await initializeDatabase();
+
+    // Poženi samodejni import zgodovinskih podatkov (če je omogočen)
+    await runHistoricalImportIfEnabled();
 
     // Zaženi server
     app.listen(PORT, () => {
