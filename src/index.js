@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const apiRoutes = require('./routes');
+const { initializeDatabase } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -633,12 +634,27 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(\`🚀 Health Tracker teče na http://localhost:\${PORT}\`);
-  console.log(\`📊 API endpoints:\`);
-  console.log(\`   POST /api/entries - Dodaj nov vnos\`);
-  console.log(\`   GET  /api/entries - Pridobi vnose\`);
-  console.log(\`   GET  /api/summary - Pridobi statistiko\`);
-  console.log(\`   GET  /api/health - Health check\`);
-  console.log(\`\\nPritisnite CTRL+C za ustavitev strežnika\`);
-});
+// Inicializacija in zagon serverja
+async function startServer() {
+  try {
+    // Inicializiraj bazo (ustvari tabelo če ne obstaja)
+    await initializeDatabase();
+
+    // Zaženi server
+    app.listen(PORT, () => {
+      console.log(\`🚀 Health Tracker teče na http://localhost:\${PORT}\`);
+      console.log(\`📊 API endpoints:\`);
+      console.log(\`   POST /api/entries - Dodaj nov vnos\`);
+      console.log(\`   GET  /api/entries - Pridobi vnose\`);
+      console.log(\`   GET  /api/summary - Pridobi statistiko\`);
+      console.log(\`   GET  /api/health - Health check\`);
+      console.log(\`\\nPritisnite CTRL+C za ustavitev strežnika\`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// Zaženi aplikacijo
+startServer();

@@ -10,7 +10,7 @@ Health Tracker uporablja **PostgreSQL** bazo za shranjevanje zdravstvenih podatk
 1. Kako ustvariti Postgres bazo na Renderju
 2. Kako pridobiti DATABASE_URL
 3. Kako nastaviti environment variablo v aplikaciji
-4. Kako pognati migrations
+4. Avtomatska inicializacija baze (ni potrebno ročno poganjati SQL!)
 
 ---
 
@@ -90,17 +90,56 @@ NODE_ENV = production
 
 ---
 
-## 4️⃣ Poženi Database Migrations
+## 4️⃣ Avtomatska Inicializacija Baze
 
-Ko je baza povezana, moraš ustvariti tabele.
+**✨ DOBRA NOVICA:** Aplikacija **avtomatsko ustvari tabelo** ob prvem zagonu!
 
-### Metoda 1: Ročno v Render SQL Query (PRIPOROČENO za prvi setup)
+### Kako deluje:
 
-1. **Pojdi v Dashboard → Tvoja PostgreSQL baza**
+1. **Aplikacija se zažene** na Renderju
+2. **Preveri povezavo** z bazo (DATABASE_URL)
+3. **Avtomatsko ustvari** tabelo `entries` če še ne obstaja
+4. **Ustvari index** za optimalne poizvedbe
+5. **Potrditev v Logs**:
+   \`\`\`
+   🔧 Initializing database...
+   ✅ Database initialized successfully
+      - Table "entries" ready
+      - Index "idx_entries_timestamp" ready
+   🚀 Health Tracker teče na...
+   \`\`\`
 
-2. **Klikni "Query" (v meniju)**
+### **Ni potrebno:**
+- ❌ Ročno poganjati SQL v Render Query konzoli
+- ❌ Poženeti migration skript
+- ❌ Kakršenkoli dodaten korak
 
-3. **Kopiraj celoten SQL iz \`migrations/001_create_entries.sql\` in ga prilepi:**
+### **Koda za avtomatsko inicializacijo:**
+
+Ob startu serverja (src/index.js) se pokliče `initializeDatabase()` funkcija iz src/db.js:
+
+\`\`\`javascript
+async function initializeDatabase() {
+  // Ustvari tabelo entries
+  await pool.query(\`CREATE TABLE IF NOT EXISTS entries (...)\`);
+
+  // Ustvari index
+  await pool.query(\`CREATE INDEX IF NOT EXISTS idx_entries_timestamp...\`);
+}
+\`\`\`
+
+Vse se zgodi **avtomatsko** - ti samo deployaš aplikacijo!
+
+### Ročna metoda (opcijsko, samo če avtomatska ne deluje)
+
+Če iz nekega razloga avtomatska inicializacija ne deluje, lahko ročno poženeš SQL:
+
+<details>
+<summary>👉 Klikni za ročni SQL</summary>
+
+1. Pojdi v Render Dashboard → PostgreSQL baza
+2. Klikni "Query"
+3. Kopiraj in poženi:
 
 \`\`\`sql
 CREATE TABLE IF NOT EXISTS entries (
@@ -116,31 +155,9 @@ CREATE TABLE IF NOT EXISTS entries (
 );
 
 CREATE INDEX IF NOT EXISTS idx_entries_timestamp ON entries(timestamp DESC);
-
-COMMENT ON TABLE entries IS 'Zdravstveni vnosi uporabnika s časovnimi oznakami';
-COMMENT ON COLUMN entries.energy IS 'Energija (1-5, kjer 5 pomeni največ energije)';
-COMMENT ON COLUMN entries.mood IS 'Razpoloženje (1-5, kjer 5 pomeni najboljše razpoloženje)';
-COMMENT ON COLUMN entries.stress IS 'Stres (1-5, kjer 5 pomeni največ stresa)';
-COMMENT ON COLUMN entries.stomach_pain IS 'Bolečina v trebuhu (1-5, kjer 5 pomeni najhujšo bolečino)';
-COMMENT ON COLUMN entries.stool IS 'Blato (1-5, kjer 4 pomeni idealno)';
-COMMENT ON COLUMN entries.note IS 'Opombe in dodatni komentarji';
 \`\`\`
 
-4. **Klikni "Run Query"**
-
-5. **Tabela je ustvarjena!** ✅
-
-### Metoda 2: Avtomatsko prek npm skripta (lokalno ali na serverju)
-
-Če imaš dostop do terminala:
-
-\`\`\`bash
-# Najprej nastavi DATABASE_URL lokalno
-export DATABASE_URL="postgresql://user:password@host:port/database"
-
-# Nato poženi migration
-npm run migrate
-\`\`\`
+</details>
 
 ---
 
@@ -178,18 +195,22 @@ https://your-app.onrender.com/api/health
 1. Preveri, da je DATABASE_URL pravilno nastavljena (Internal, ne External)
 2. Preveri, da si jo kopiral CELOTNO (včasih se konec odreže)
 3. Pojdi na Render → PostgreSQL baza → Info in ponovno kopiraj URL
+4. Preveri, da je NODE_ENV=production nastavljen
 
-### Problem: "Table 'entries' does not exist"
+### Problem: "Database initialization failed"
 
 **Rešitev:**
-1. Pojdi v Render → PostgreSQL baza → Query
-2. Zaženi migration SQL (korak 4, Metoda 1)
+1. Preveri Logs v Render Dashboard → Web Service → Logs
+2. Če vidiš "permission denied" - DATABASE_URL nima pravilnih pravic
+3. Preveri DATABASE_URL format: `postgresql://user:pass@host:port/db`
+4. Če avtomatska inicializacija ne deluje, uporabi ročno metodo (glej sekcijo 4️⃣)
 
 ### Problem: "Error: password authentication failed"
 
 **Rešitev:**
 1. DATABASE_URL je narobe - ponovno kopiraj z Renderja
 2. Preveri, da nimaš dodatnih presledkov pred/za URL
+3. Poskusi ponovno deployati aplikacijo
 
 ### Problem: Aplikacija se ne poveže z bazo
 
@@ -197,6 +218,7 @@ https://your-app.onrender.com/api/health
 1. Počakaj 2-3 minute - Render včasih potrebuje čas
 2. Preveri Logs: Dashboard → Web Service → Logs
 3. Išči napake kot "connection refused" ali "timeout"
+4. Preveri da je PostgreSQL baza v istem regionu kot Web Service (opcijsko)
 
 ---
 
