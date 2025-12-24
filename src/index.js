@@ -642,13 +642,13 @@ async function startServer() {
 
     // Zaženi server
     app.listen(PORT, () => {
-      console.log(\`🚀 Health Tracker teče na http://localhost:\${PORT}\`);
-      console.log(\`📊 API endpoints:\`);
-      console.log(\`   POST /api/entries - Dodaj nov vnos\`);
-      console.log(\`   GET  /api/entries - Pridobi vnose\`);
-      console.log(\`   GET  /api/summary - Pridobi statistiko\`);
-      console.log(\`   GET  /api/health - Health check\`);
-      console.log(\`\\nPritisnite CTRL+C za ustavitev strežnika\`);
+      console.log(`🚀 Health Tracker teče na portu ${PORT}`);
+      console.log(`📊 API endpoints:`);
+      console.log(`   POST /api/entries - Dodaj nov vnos`);
+      console.log(`   GET  /api/entries - Pridobi vnose`);
+      console.log(`   GET  /api/summary - Pridobi statistiko`);
+      console.log(`   GET  /api/health - Health check`);
+      console.log(`\nPritisnite CTRL+C za ustavitev strežnika`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
