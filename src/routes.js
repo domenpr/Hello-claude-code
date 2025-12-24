@@ -205,4 +205,66 @@ router.get('/health', async (req, res) => {
   }
 });
 
+// POST /api/admin/import-historical - Import historical data (requires ENABLE_IMPORT=1)
+router.post('/admin/import-historical', async (req, res) => {
+  try {
+    // Check if import is enabled via environment variable
+    if (process.env.ENABLE_IMPORT !== '1') {
+      return res.status(403).json({
+        error: 'Import disabled',
+        message: 'Set ENABLE_IMPORT=1 environment variable to enable import'
+      });
+    }
+
+    console.log('🔄 Starting historical data import...');
+
+    // Ensure unique constraint on timestamp exists (for idempotency)
+    await db.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS entries_timestamp_unique ON entries(timestamp)
+    `);
+
+    // Read migration file
+    const fs = require('fs').promises;
+    const path = require('path');
+    const migrationPath = path.join(__dirname, '..', 'migrations', '002_import_historical_data.sql');
+    let sql = await fs.readFile(migrationPath, 'utf8');
+
+    // Split by semicolons and extract INSERT statements
+    const statements = sql
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => s && s.startsWith('INSERT'));
+
+    let insertedCount = 0;
+    let skippedCount = 0;
+
+    // Process each INSERT statement with conflict handling
+    for (const statement of statements) {
+      const modifiedStatement = statement + ' ON CONFLICT (timestamp) DO NOTHING';
+      const result = await db.query(modifiedStatement);
+      insertedCount += result.rowCount;
+
+      // Count skipped (already existing) entries
+      const expectedRows = (statement.match(/\),/g) || []).length + 1;
+      skippedCount += (expectedRows - result.rowCount);
+    }
+
+    console.log(`✅ Import completed: ${insertedCount} inserted, ${skippedCount} skipped`);
+
+    res.json({
+      success: true,
+      message: 'Historical data import completed',
+      inserted: insertedCount,
+      skipped: skippedCount,
+      total_statements: statements.length
+    });
+  } catch (error) {
+    console.error('❌ Error importing historical data:', error);
+    res.status(500).json({
+      error: 'Import failed',
+      details: error.message
+    });
+  }
+});
+
 module.exports = router;

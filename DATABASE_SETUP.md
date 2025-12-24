@@ -161,6 +161,80 @@ CREATE INDEX IF NOT EXISTS idx_entries_timestamp ON entries(timestamp DESC);
 
 ---
 
+## 4️⃣ B - Import Zgodovinskih Podatkov (sep-dec 2024)
+
+Projekt vsebuje zgodovinske zdravstvene podatke od **02.09.2024 do 18.12.2024** (321 vnosov).
+
+### Admin Endpoint za Import
+
+**POST /api/admin/import-historical**
+
+Za uvoz zgodovinskih podatkov preko HTTP endpointa:
+
+1. **Nastavi environment variablo na Renderju:**
+   - Pojdi v Dashboard → Web Service → Environment
+   - Dodaj novo variablo:
+     - **Key**: \`ENABLE_IMPORT\`
+     - **Value**: \`1\`
+   - Klikni "Save Changes" (aplikacija se bo redeploya)
+
+2. **Kliči endpoint** (ko se aplikacija zažene):
+
+   **Z brskalnikom ali curl:**
+   \`\`\`bash
+   curl -X POST https://your-app.onrender.com/api/admin/import-historical
+   \`\`\`
+
+   **Ali v brskalniku z uporabo konzole (F12):**
+   \`\`\`javascript
+   fetch('/api/admin/import-historical', { method: 'POST' })
+     .then(r => r.json())
+     .then(console.log)
+   \`\`\`
+
+3. **Preveri rezultat:**
+   - Endpoint vrne število vstavljenih in preskočenih vnosov
+   - **Safe za večkratni klic** - obstoječi vnosi se ne podvojijo!
+
+4. **Po uspešnem importu - ODSTRANI variablo:**
+   - Pojdi nazaj v Environment
+   - Izbriši \`ENABLE_IMPORT\` variablo ali spremeni v \`0\`
+   - To preprečuje nenamenski klic endpointa v prihodnosti
+
+### Primer odgovorov:
+
+**Prvi klic (uspešen import):**
+\`\`\`json
+{
+  "success": true,
+  "message": "Historical data import completed",
+  "inserted": 321,
+  "skipped": 0,
+  "total_statements": 107
+}
+\`\`\`
+
+**Drugi klic (vsi vnosi že obstajajo):**
+\`\`\`json
+{
+  "success": true,
+  "message": "Historical data import completed",
+  "inserted": 0,
+  "skipped": 321,
+  "total_statements": 107
+}
+\`\`\`
+
+**Če \`ENABLE_IMPORT\` ni nastavljena:**
+\`\`\`json
+{
+  "error": "Import disabled",
+  "message": "Set ENABLE_IMPORT=1 environment variable to enable import"
+}
+\`\`\`
+
+---
+
 ## 5️⃣ Preveri, da vse deluje
 
 ### Test 1: Health Check Endpoint
