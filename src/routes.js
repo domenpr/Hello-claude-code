@@ -49,23 +49,29 @@ router.post('/entries', async (req, res) => {
   }
 });
 
-// GET /api/entries?from=&to= - Pridobi vnose v časovnem obdobju
+// GET /api/entries?from=&to=&days= - Pridobi vnose v časovnem obdobju
+// days parameter: število dni nazaj od danes (npr. days=7 vrne zadnjih 7 dni)
 router.get('/entries', async (req, res) => {
   try {
-    const { from, to, limit = 100 } = req.query;
+    const { from, to, limit = 100, days } = req.query;
 
     let query = 'SELECT * FROM entries';
     const params = [];
     const conditions = [];
 
-    if (from) {
-      conditions.push(`timestamp >= $${params.length + 1}`);
-      params.push(from);
-    }
+    // Če je podan days parameter, ignoriramo from/to
+    if (days) {
+      conditions.push(`timestamp >= NOW() - INTERVAL '${parseInt(days)} days'`);
+    } else {
+      if (from) {
+        conditions.push(`timestamp >= $${params.length + 1}`);
+        params.push(from);
+      }
 
-    if (to) {
-      conditions.push(`timestamp <= $${params.length + 1}`);
-      params.push(to);
+      if (to) {
+        conditions.push(`timestamp <= $${params.length + 1}`);
+        params.push(to);
+      }
     }
 
     if (conditions.length > 0) {
@@ -86,6 +92,112 @@ router.get('/entries', async (req, res) => {
     console.error('Error fetching entries:', error);
     res.status(500).json({
       error: 'Napaka pri pridobivanju vnosov',
+      details: error.message
+    });
+  }
+});
+
+// GET /api/entries/daily?days= - Pridobi dnevno agregirane vnose
+// Za prikaz dolgih obdobij (30+ dni) z manj podatkovnimi točkami
+router.get('/entries/daily', async (req, res) => {
+  try {
+    const { days = 30 } = req.query;
+
+    // Dnevna agregacija: povprečje energije/stresa, max bolečine, zadnja vrednost blata
+    const query = `
+      SELECT
+        DATE(timestamp) as date,
+        AVG(energy)::numeric(10,2) as avg_energy,
+        AVG(stress)::numeric(10,2) as avg_stress,
+        MAX(stomach_pain) as max_stomach_pain,
+        (ARRAY_AGG(stool ORDER BY timestamp DESC))[1] as last_stool
+      FROM entries
+      WHERE timestamp >= NOW() - INTERVAL '${parseInt(days)} days'
+        AND DATE(timestamp) <= CURRENT_DATE
+      GROUP BY DATE(timestamp)
+      ORDER BY date DESC
+      LIMIT 100
+    `;
+
+    const result = await db.query(query);
+
+    res.json({
+      success: true,
+      count: result.rows.length,
+      daily_entries: result.rows
+    });
+  } catch (error) {
+    console.error('Error fetching daily entries:', error);
+    res.status(500).json({
+      error: 'Napaka pri pridobivanju dnevnih vnosov',
+      details: error.message
+    });
+  }
+});
+
+// GET /api/summary/week - Pridobi 7-dnevni povzetek za prikaz na vrhu grafov
+router.get('/summary/week', async (req, res) => {
+  try {
+    // Statistika za zadnjih 7 dni
+    const statsQuery = `
+      SELECT
+        AVG(energy)::numeric(10,2) as avg_energy,
+        AVG(stress)::numeric(10,2) as avg_stress,
+        COUNT(DISTINCT DATE(timestamp)) as days_count,
+        COUNT(DISTINCT DATE(timestamp)) FILTER (
+          WHERE stool = 4
+        ) as ideal_stool_days
+      FROM entries
+      WHERE timestamp >= NOW() - INTERVAL '7 days'
+    `;
+
+    // Trend - primerjava s prejšnjimi 7 dnevi
+    const trendQuery = `
+      SELECT
+        AVG(CASE WHEN timestamp >= NOW() - INTERVAL '7 days' THEN energy END)::numeric(10,2) as current_energy,
+        AVG(CASE WHEN timestamp < NOW() - INTERVAL '7 days' AND timestamp >= NOW() - INTERVAL '14 days' THEN energy END)::numeric(10,2) as prev_energy,
+        AVG(CASE WHEN timestamp >= NOW() - INTERVAL '7 days' THEN stress END)::numeric(10,2) as current_stress,
+        AVG(CASE WHEN timestamp < NOW() - INTERVAL '7 days' AND timestamp >= NOW() - INTERVAL '14 days' THEN stress END)::numeric(10,2) as prev_stress
+      FROM entries
+      WHERE timestamp >= NOW() - INTERVAL '14 days'
+    `;
+
+    const [statsResult, trendResult] = await Promise.all([
+      db.query(statsQuery),
+      db.query(trendQuery)
+    ]);
+
+    const stats = statsResult.rows[0];
+    const trend = trendResult.rows[0];
+
+    // Izračun % dni z idealnim blatom
+    const idealStoolPercentage = stats.days_count > 0
+      ? Math.round((stats.ideal_stool_days / stats.days_count) * 100)
+      : 0;
+
+    // Trend kazalniki
+    const energyTrend = trend.prev_energy
+      ? (parseFloat(trend.current_energy) > parseFloat(trend.prev_energy) ? 'up' : parseFloat(trend.current_energy) < parseFloat(trend.prev_energy) ? 'down' : 'stable')
+      : 'stable';
+
+    const stressTrend = trend.prev_stress
+      ? (parseFloat(trend.current_stress) > parseFloat(trend.prev_stress) ? 'up' : parseFloat(trend.current_stress) < parseFloat(trend.prev_stress) ? 'down' : 'stable')
+      : 'stable';
+
+    res.json({
+      success: true,
+      week_summary: {
+        avg_energy: stats.avg_energy,
+        avg_stress: stats.avg_stress,
+        ideal_stool_percentage: idealStoolPercentage,
+        energy_trend: energyTrend,
+        stress_trend: stressTrend
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching week summary:', error);
+    res.status(500).json({
+      error: 'Napaka pri pridobivanju tedenskega povzetka',
       details: error.message
     });
   }
