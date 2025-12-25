@@ -64,40 +64,73 @@ router.get('/entries', async (req, res) => {
   try {
     const { from, to, limit = 1000, days } = req.query;
 
+    // DEBUG: Najprej preveri koliko vnosov sploh obstaja v bazi
+    const totalCountResult = await db.query('SELECT COUNT(*) as total FROM entries');
+    const totalInDb = parseInt(totalCountResult.rows[0].total);
+
     let query = 'SELECT * FROM entries';
-    const params = [];
-    const conditions = [];
+    let whereClause = '';
 
     // Če je podan days parameter, ignoriramo from/to
     if (days && days !== 'all') {
       const daysNum = parseInt(days);
-      query += ` WHERE timestamp >= NOW() - INTERVAL '${daysNum} days'`;
-      console.log(`📊 [GET /api/entries] Filtering by days=${daysNum}`);
+
+      // POMEMBNO: Uporabljaj CURRENT_TIMESTAMP (timezone aware) namesto NOW()
+      whereClause = ` WHERE timestamp >= CURRENT_TIMESTAMP - INTERVAL '${daysNum} days'`;
+
+      console.log('🔍 GRAPH DEBUG - Filter query:', {
+        requestedDays: days,
+        daysNum: daysNum,
+        currentTimestamp: new Date().toISOString(),
+        whereClause: whereClause
+      });
     } else if (from || to) {
+      const conditions = [];
       if (from) {
-        conditions.push(`timestamp >= $${params.length + 1}`);
-        params.push(from);
+        conditions.push(`timestamp >= '${from}'`);
       }
       if (to) {
-        conditions.push(`timestamp <= $${params.length + 1}`);
-        params.push(to);
+        conditions.push(`timestamp <= '${to}'`);
       }
-      query += ' WHERE ' + conditions.join(' AND ');
+      whereClause = ' WHERE ' + conditions.join(' AND ');
     } else {
-      console.log(`📊 [GET /api/entries] No filter - returning all entries (up to limit)`);
+      console.log('📊 [GET /api/entries] No filter - returning all entries');
     }
 
+    // Dodaj WHERE clause in ordering
+    query += whereClause;
     query += ` ORDER BY timestamp DESC LIMIT ${parseInt(limit)}`;
 
-    const result = await db.query(query);
+    console.log('🔍 GRAPH DEBUG - Final SQL query:', query);
 
-    // Diagnostika
-    console.log(`📊 [GET /api/entries] Query returned ${result.rows.length} entries (days=${days || 'all'}, limit=${limit})`);
+    const result = await db.query(query);
+    const entries = result.rows;
+
+    // OBSEŽEN DEBUG LOG
+    console.log('🔍 GRAPH DEBUG - Query results:', {
+      days: days || 'all',
+      totalEntriesInDb: totalInDb,
+      entriesReturned: entries.length,
+      firstTimestamp: entries.length > 0 ? entries[entries.length - 1]?.timestamp : null, // Najstarejši (ORDER DESC)
+      lastTimestamp: entries.length > 0 ? entries[0]?.timestamp : null, // Najnovejši (ORDER DESC)
+      limit: limit
+    });
+
+    // Če je vrnjenih manj kot pričakovano, daj še dodatne info
+    if (days && days !== 'all' && entries.length < 10) {
+      console.warn('⚠️ GRAPH DEBUG - Very few entries returned! Checking date range...');
+
+      // Preveri kdaj so prvi in zadnji vnosi v celotni bazi
+      const rangeResult = await db.query(
+        'SELECT MIN(timestamp) as min_ts, MAX(timestamp) as max_ts FROM entries'
+      );
+      console.log('🔍 GRAPH DEBUG - Database date range:', rangeResult.rows[0]);
+    }
 
     res.json({
       success: true,
-      count: result.rows.length,
-      entries: result.rows
+      count: entries.length,
+      entries: entries
     });
   } catch (error) {
     console.error('Error fetching entries:', error);
@@ -418,6 +451,8 @@ router.get('/wellbeing', async (req, res) => {
     //   - stres: višje = slabše → obrni (6 - stres)
     //   - bolečina: višje = slabše → obrni (6 - bolečina)
     //   - blato: 4 = idealno (5 točk), 3 ali 5 = (3 točke), 1 ali 2 = (1 točka)
+
+    // POMEMBNO: Uporabljaj CURRENT_TIMESTAMP (timezone aware)
     const query = `
       WITH daily_wellbeing AS (
         SELECT
@@ -436,7 +471,7 @@ router.get('/wellbeing', async (req, res) => {
             END
           ) as avg_stool_score
         FROM entries
-        WHERE timestamp >= NOW() - INTERVAL '${daysNum} days'
+        WHERE timestamp >= CURRENT_TIMESTAMP - INTERVAL '${daysNum} days'
         GROUP BY DATE(timestamp)
       )
       SELECT
@@ -450,10 +485,19 @@ router.get('/wellbeing', async (req, res) => {
       ORDER BY date ASC
     `;
 
+    console.log('🔍 WELLBEING DEBUG - SQL query:', query);
+
     const result = await db.query(query);
     const dailyWellbeing = result.rows;
 
-    console.log(`💚 [GET /api/wellbeing] Found ${dailyWellbeing.length} days with data`);
+    console.log('🔍 WELLBEING DEBUG - Query results:', {
+      days: days,
+      daysNum: daysNum,
+      wellbeingDaysReturned: dailyWellbeing.length,
+      firstDate: dailyWellbeing.length > 0 ? dailyWellbeing[0].date : null,
+      lastDate: dailyWellbeing.length > 0 ? dailyWellbeing[dailyWellbeing.length - 1].date : null,
+      sampleData: dailyWellbeing.slice(0, 3) // Prvi 3 dnevi
+    });
 
     // Izračun 7-dnevnega drsečega povprečja
     const withMovingAvg = dailyWellbeing.map((day, index) => {
@@ -478,7 +522,7 @@ router.get('/wellbeing', async (req, res) => {
       };
     });
 
-    console.log(`💚 [GET /api/wellbeing] Returning wellbeing data: days=${days}, wellbeingDays=${withMovingAvg.length}`);
+    console.log(`💚 [GET /api/wellbeing] Final: days=${days}, wellbeingDays=${withMovingAvg.length}`);
 
     res.json({
       success: true,
