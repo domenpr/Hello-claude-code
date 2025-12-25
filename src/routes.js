@@ -616,4 +616,57 @@ router.post('/admin/import-historical', async (req, res) => {
   }
 });
 
+// POST /api/admin/fix-year - Fix year from 2024 to 2025 for historical data
+router.post('/admin/fix-year', async (req, res) => {
+  try {
+    // Check if import is enabled via environment variable
+    if (process.env.ENABLE_IMPORT !== '1') {
+      return res.status(403).json({
+        error: 'Fix disabled',
+        message: 'Set ENABLE_IMPORT=1 environment variable to enable year fix'
+      });
+    }
+
+    console.log('🔧 Starting year fix: 2024 → 2025');
+
+    // Count entries in 2024
+    const countResult = await db.query(
+      "SELECT COUNT(*) as count FROM entries WHERE timestamp >= '2024-01-01' AND timestamp < '2025-01-01'"
+    );
+    const count2024 = parseInt(countResult.rows[0].count);
+
+    console.log(`Found ${count2024} entries in year 2024`);
+
+    // Update all 2024 entries to 2025 by adding 1 year
+    const updateResult = await db.query(`
+      UPDATE entries
+      SET timestamp = timestamp + INTERVAL '1 year'
+      WHERE timestamp >= '2024-01-01' AND timestamp < '2025-01-01'
+    `);
+
+    console.log(`✅ Updated ${updateResult.rowCount} entries to year 2025`);
+
+    // Verify the fix
+    const verifyResult = await db.query(
+      "SELECT MIN(timestamp) as min_ts, MAX(timestamp) as max_ts, COUNT(*) as total FROM entries"
+    );
+
+    console.log('📊 Database date range after fix:', verifyResult.rows[0]);
+
+    res.json({
+      success: true,
+      message: 'Year fix completed',
+      entries_updated: updateResult.rowCount,
+      entries_found_2024: count2024,
+      new_date_range: verifyResult.rows[0]
+    });
+  } catch (error) {
+    console.error('❌ Error fixing year:', error);
+    res.status(500).json({
+      error: 'Year fix failed',
+      details: error.message
+    });
+  }
+});
+
 module.exports = router;
