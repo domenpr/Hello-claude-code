@@ -1158,6 +1158,16 @@ app.get('/', (req, res) => {
 
     // Naloži podatke ob nalaganju strani
     loadEntries();
+
+    // DEBUGGING: Avtomatsko naloži grafe ob page load za testiranje
+    console.log('🔧 AUTO-LOADING CHARTS FOR DEBUGGING');
+    setTimeout(() => {
+      console.log('🔧 Loading charts with days=30 for debugging...');
+      loadWeekSummary();
+      loadCharts(30);
+      loadWellbeingChart(30);
+    }, 2000); // Počaka 2 sekundi po page load
+
     // Grafe in povzetek naložimo samo ko uporabnik klikne na "Grafi" tab
 
     // Osveži vsakih 30 sekund (samo vnose, ne grafov)
