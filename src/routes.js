@@ -75,13 +75,14 @@ router.get('/entries', async (req, res) => {
     if (days && days !== 'all') {
       const daysNum = parseInt(days);
 
-      // TIMEZONE FIX: Uporabi DATE() cast za primerjavo brez ur
-      whereClause = ` WHERE DATE(timestamp) >= CURRENT_DATE - INTERVAL '${daysNum} days'`;
+      // Uporabi timestamp::date cast namesto DATE() funkcije
+      whereClause = ` WHERE timestamp::date >= CURRENT_DATE - ${daysNum}`;
 
       console.log('🔍 GRAPH DEBUG - Filter query:', {
         requestedDays: days,
         daysNum: daysNum,
         currentDate: new Date().toISOString().split('T')[0],
+        filterStartDate: new Date(Date.now() - daysNum * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         whereClause: whereClause
       });
     } else if (from || to) {
@@ -456,7 +457,7 @@ router.get('/wellbeing', async (req, res) => {
     const query = `
       WITH daily_wellbeing AS (
         SELECT
-          DATE(timestamp) as date,
+          timestamp::date as date,
           COUNT(*) as entries_count,
           AVG(energy) as avg_energy,
           AVG(mood) as avg_mood,
@@ -471,8 +472,8 @@ router.get('/wellbeing', async (req, res) => {
             END
           ) as avg_stool_score
         FROM entries
-        WHERE DATE(timestamp) >= CURRENT_DATE - INTERVAL '${daysNum} days'
-        GROUP BY DATE(timestamp)
+        WHERE timestamp::date >= CURRENT_DATE - ${daysNum}
+        GROUP BY timestamp::date
       )
       SELECT
         date,
