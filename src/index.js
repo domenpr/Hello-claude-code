@@ -650,20 +650,65 @@ async function runHistoricalImportIfEnabled() {
     await pool.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS entries_timestamp_unique ON entries(timestamp)
     `);
+    console.log('   - Unique index on timestamp created');
 
     // Pot do migration datoteke
     const migrationPath = path.join(__dirname, '..', 'migrations', '002_import_historical_data.sql');
+    console.log(`📁 Reading migration file: ${migrationPath}`);
 
-    // Preberi cel SQL file
-    const sql = await fs.readFile(migrationPath, 'utf8');
+    // Preberi SQL file
+    const sqlContent = await fs.readFile(migrationPath, 'utf8');
+    console.log(`📄 SQL file size: ${sqlContent.length} bytes`);
 
-    // Izvedi cel SQL v enem klicu
-    await pool.query(sql);
+    // Razbiči na posamezne INSERT stavke (ignoriraj komentarje in prazne vrstice)
+    const insertStatements = sqlContent
+      .split('\n')
+      .filter(line => {
+        const trimmed = line.trim();
+        return trimmed && !trimmed.startsWith('--');
+      })
+      .join('\n')
+      .split(';')
+      .map(stmt => stmt.trim())
+      .filter(stmt => stmt && stmt.toUpperCase().startsWith('INSERT'));
+
+    console.log(`🔍 Found ${insertStatements.length} INSERT statements`);
+
+    if (insertStatements.length === 0) {
+      console.log('⚠️  No INSERT statements found');
+      return;
+    }
+
+    // Izvedi v transakciji
+    const client = await pool.connect();
+    try {
+      console.log('🔒 Starting transaction...');
+      await client.query('BEGIN');
+
+      for (const stmt of insertStatements) {
+        await client.query(stmt);
+      }
+
+      await client.query('COMMIT');
+      console.log('✅ Transaction committed');
+
+    } catch (e) {
+      await client.query('ROLLBACK');
+      console.error('❌ Import failed on statement:', e.message);
+      throw e;
+    } finally {
+      client.release();
+    }
+
+    // Preveri število vnosov v bazi
+    const { rows } = await pool.query('SELECT COUNT(*) AS c FROM entries');
+    console.log(`📊 Entries in DB after import: ${rows[0].c}`);
 
     console.log('✅ Historical data import completed');
 
   } catch (error) {
     console.error('❌ Historical data import failed:', error.message);
+    console.error('   Stack:', error.stack);
     // Ne stopiraj aplikacije, samo loga napako
   }
 }
