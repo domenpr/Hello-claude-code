@@ -609,11 +609,19 @@ app.get('/', (req, res) => {
     // Časovni filtri - event listeners
     document.querySelectorAll('.filter-btn').forEach(btn => {
       btn.addEventListener('click', () => {
+        console.log('🔘 Filter button clicked: ' + btn.dataset.days);
+
+        // Posodobi UI
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
 
+        // Posodobi globalno stanje
         const days = btn.dataset.days;
         currentDays = days === 'all' ? 'all' : parseInt(days);
+
+        console.log('🔄 Updating both charts for days=' + currentDays);
+
+        // Naloži oba grafa z istim filtrom
         loadCharts(currentDays);
         loadWellbeingChart(currentDays);
       });
@@ -803,13 +811,22 @@ app.get('/', (req, res) => {
     // Naloži grafe - en glavni graf z vsemi 5 indikatorji
     async function loadCharts(days = 14) {
       try {
-        // Enostavno pridobivanje podatkov - brez agregacije
-        const apiUrl = days === 'all' ? '/api/entries?limit=1000' : '/api/entries?days=' + days + '&limit=1000';
+        console.log('📊 Loading main chart for days=' + days);
+
+        // Pridobi podatke - enostavno, brez agregacije
+        const apiUrl = '/api/entries?days=' + days + '&limit=1000';
         const response = await fetch(apiUrl);
         const data = await response.json();
 
+        console.log('📊 Received ' + (data.entries ? data.entries.length : 0) + ' entries from API');
+
         if (!data.entries || data.entries.length === 0) {
-          console.log('No entries found');
+          console.log('⚠️ No entries found for days=' + days);
+          // Očisti graf če ni podatkov
+          if (mainChart) {
+            mainChart.destroy();
+            mainChart = null;
+          }
           return;
         }
 
@@ -1003,12 +1020,20 @@ app.get('/', (req, res) => {
     // Naloži wellbeing graf - indeks dobrega počutja
     async function loadWellbeingChart(days = 14) {
       try {
-        const apiDays = days === 'all' ? 365 : days;
-        const response = await fetch('/api/wellbeing?days=' + apiDays);
+        console.log('💚 Loading wellbeing chart for days=' + days);
+
+        const response = await fetch('/api/wellbeing?days=' + days);
         const data = await response.json();
 
+        console.log('💚 Received ' + (data.wellbeing_data ? data.wellbeing_data.length : 0) + ' wellbeing days from API');
+
         if (!data.wellbeing_data || data.wellbeing_data.length === 0) {
-          console.log('No wellbeing data found');
+          console.log('⚠️ No wellbeing data found for days=' + days);
+          // Očisti graf če ni podatkov
+          if (wellbeingChart) {
+            wellbeingChart.destroy();
+            wellbeingChart = null;
+          }
           return;
         }
 

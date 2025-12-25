@@ -62,35 +62,37 @@ router.post('/entries', async (req, res) => {
 // days parameter: število dni nazaj od danes (npr. days=7 vrne zadnjih 7 dni)
 router.get('/entries', async (req, res) => {
   try {
-    const { from, to, limit = 100, days } = req.query;
+    const { from, to, limit = 1000, days } = req.query;
 
     let query = 'SELECT * FROM entries';
     const params = [];
     const conditions = [];
 
     // Če je podan days parameter, ignoriramo from/to
-    if (days) {
-      conditions.push(`timestamp >= NOW() - INTERVAL '${parseInt(days)} days'`);
-    } else {
+    if (days && days !== 'all') {
+      const daysNum = parseInt(days);
+      query += ` WHERE timestamp >= NOW() - INTERVAL '${daysNum} days'`;
+      console.log(`📊 [GET /api/entries] Filtering by days=${daysNum}`);
+    } else if (from || to) {
       if (from) {
         conditions.push(`timestamp >= $${params.length + 1}`);
         params.push(from);
       }
-
       if (to) {
         conditions.push(`timestamp <= $${params.length + 1}`);
         params.push(to);
       }
-    }
-
-    if (conditions.length > 0) {
       query += ' WHERE ' + conditions.join(' AND ');
+    } else {
+      console.log(`📊 [GET /api/entries] No filter - returning all entries (up to limit)`);
     }
 
-    query += ` ORDER BY timestamp DESC LIMIT $${params.length + 1}`;
-    params.push(parseInt(limit));
+    query += ` ORDER BY timestamp DESC LIMIT ${parseInt(limit)}`;
 
-    const result = await db.query(query, params);
+    const result = await db.query(query);
+
+    // Diagnostika
+    console.log(`📊 [GET /api/entries] Query returned ${result.rows.length} entries (days=${days || 'all'}, limit=${limit})`);
 
     res.json({
       success: true,
@@ -402,7 +404,12 @@ router.get('/export/csv', async (req, res) => {
 // GET /api/wellbeing?days= - Pridobi wellbeing indeks po dnevih
 router.get('/wellbeing', async (req, res) => {
   try {
-    const { days = 30 } = req.query;
+    let { days = 30 } = req.query;
+
+    // Če je "all", uporabljaj veliko število dni (npr. 365)
+    const daysNum = (days === 'all') ? 365 : parseInt(days);
+
+    console.log(`💚 [GET /api/wellbeing] Calculating wellbeing for days=${days} (${daysNum})`);
 
     // Izračun wellbeing indeksa po dnevih
     // Wellbeing = povprečje normaliziranih vrednosti:
@@ -415,6 +422,7 @@ router.get('/wellbeing', async (req, res) => {
       WITH daily_wellbeing AS (
         SELECT
           DATE(timestamp) as date,
+          COUNT(*) as entries_count,
           AVG(energy) as avg_energy,
           AVG(mood) as avg_mood,
           AVG(6 - stress) as avg_stress_inverted,
@@ -428,11 +436,12 @@ router.get('/wellbeing', async (req, res) => {
             END
           ) as avg_stool_score
         FROM entries
-        WHERE timestamp >= NOW() - INTERVAL '${parseInt(days)} days'
+        WHERE timestamp >= NOW() - INTERVAL '${daysNum} days'
         GROUP BY DATE(timestamp)
       )
       SELECT
         date,
+        entries_count,
         ROUND(
           (avg_energy + avg_mood + avg_stress_inverted + avg_pain_inverted + COALESCE(avg_stool_score, 3)) / 5.0,
           1
@@ -444,12 +453,15 @@ router.get('/wellbeing', async (req, res) => {
     const result = await db.query(query);
     const dailyWellbeing = result.rows;
 
+    console.log(`💚 [GET /api/wellbeing] Found ${dailyWellbeing.length} days with data`);
+
     // Izračun 7-dnevnega drsečega povprečja
     const withMovingAvg = dailyWellbeing.map((day, index) => {
       if (index < 6) {
         // Prvih 6 dni nima 7-dnevnega povprečja
         return {
-          ...day,
+          date: day.date,
+          wellbeing: parseFloat(day.wellbeing),
           moving_avg_7d: null
         };
       }
@@ -460,10 +472,13 @@ router.get('/wellbeing', async (req, res) => {
       const avg = sum / 7;
 
       return {
-        ...day,
+        date: day.date,
+        wellbeing: parseFloat(day.wellbeing),
         moving_avg_7d: Math.round(avg * 10) / 10
       };
     });
+
+    console.log(`💚 [GET /api/wellbeing] Returning wellbeing data: days=${days}, wellbeingDays=${withMovingAvg.length}`);
 
     res.json({
       success: true,
