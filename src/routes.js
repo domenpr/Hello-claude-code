@@ -6,7 +6,7 @@ const router = express.Router();
 // POST /api/entries - Ustvari nov vnos
 router.post('/entries', async (req, res) => {
   try {
-    const { energy, mood, stress, stomach_pain, stool, note } = req.body;
+    const { energy, mood, stress, stomach_pain, stool, note, timestamp } = req.body;
 
     // Validacija
     if (!energy || !mood || !stress || !stomach_pain || !stool) {
@@ -28,12 +28,21 @@ router.post('/entries', async (req, res) => {
       }
     }
 
-    const result = await db.query(
-      `INSERT INTO entries (energy, mood, stress, stomach_pain, stool, note)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING *`,
-      [energy, mood, stress, stomach_pain, stool, note || null]
-    );
+    // Če je podan timestamp, ga uporabi; sicer uporabi trenutni čas
+    let query, params;
+    if (timestamp) {
+      query = `INSERT INTO entries (timestamp, energy, mood, stress, stomach_pain, stool, note)
+               VALUES ($1, $2, $3, $4, $5, $6, $7)
+               RETURNING *`;
+      params = [timestamp, energy, mood, stress, stomach_pain, stool, note || null];
+    } else {
+      query = `INSERT INTO entries (energy, mood, stress, stomach_pain, stool, note)
+               VALUES ($1, $2, $3, $4, $5, $6)
+               RETURNING *`;
+      params = [energy, mood, stress, stomach_pain, stool, note || null];
+    }
+
+    const result = await db.query(query, params);
 
     res.status(201).json({
       success: true,
@@ -313,6 +322,159 @@ router.get('/health', async (req, res) => {
       status: 'unhealthy',
       database: 'disconnected',
       error: error.message
+    });
+  }
+});
+
+// DELETE /api/entries/:id - Izbriši vnos
+router.delete('/entries/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Preveri ali vnos obstaja
+    const checkResult = await db.query('SELECT id FROM entries WHERE id = $1', [id]);
+
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({
+        error: 'Vnos ne obstaja',
+        id: parseInt(id)
+      });
+    }
+
+    // Izbriši vnos
+    await db.query('DELETE FROM entries WHERE id = $1', [id]);
+
+    res.json({
+      success: true,
+      message: 'Vnos uspešno izbrisan',
+      id: parseInt(id)
+    });
+  } catch (error) {
+    console.error('Error deleting entry:', error);
+    res.status(500).json({
+      error: 'Napaka pri brisanju vnosa',
+      details: error.message
+    });
+  }
+});
+
+// GET /api/export/csv - Izvozi vse vnose v CSV format
+router.get('/export/csv', async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM entries ORDER BY timestamp ASC');
+    const entries = result.rows;
+
+    // Ustvari CSV header
+    const headers = 'id,timestamp,energy,mood,stress,stomach_pain,stool,note,created_at';
+
+    // Ustvari CSV vrstice
+    const rows = entries.map(entry => {
+      return [
+        entry.id,
+        entry.timestamp,
+        entry.energy,
+        entry.mood,
+        entry.stress,
+        entry.stomach_pain,
+        entry.stool || '',
+        entry.note ? '"' + entry.note.replace(/"/g, '""') + '"' : '',
+        entry.created_at
+      ].join(',');
+    });
+
+    // Združi header in vrstice
+    const csv = [headers, ...rows].join('\n');
+
+    // Nastavi HTTP headerje za download
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="entries.csv"');
+
+    res.send(csv);
+  } catch (error) {
+    console.error('Error exporting CSV:', error);
+    res.status(500).json({
+      error: 'Napaka pri izvozu CSV',
+      details: error.message
+    });
+  }
+});
+
+// GET /api/wellbeing?days= - Pridobi wellbeing indeks po dnevih
+router.get('/wellbeing', async (req, res) => {
+  try {
+    const { days = 30 } = req.query;
+
+    // Izračun wellbeing indeksa po dnevih
+    // Wellbeing = povprečje normaliziranih vrednosti:
+    //   - energija: višje = bolje (ostane 1-5)
+    //   - psiha: višje = bolje (ostane 1-5)
+    //   - stres: višje = slabše → obrni (6 - stres)
+    //   - bolečina: višje = slabše → obrni (6 - bolečina)
+    //   - blato: 4 = idealno (5 točk), 3 ali 5 = (3 točke), 1 ali 2 = (1 točka)
+    const query = `
+      WITH daily_wellbeing AS (
+        SELECT
+          DATE(timestamp) as date,
+          AVG(energy) as avg_energy,
+          AVG(mood) as avg_mood,
+          AVG(6 - stress) as avg_stress_inverted,
+          AVG(6 - stomach_pain) as avg_pain_inverted,
+          AVG(
+            CASE
+              WHEN stool = 4 THEN 5
+              WHEN stool IN (3, 5) THEN 3
+              WHEN stool IN (1, 2) THEN 1
+              ELSE NULL
+            END
+          ) as avg_stool_score
+        FROM entries
+        WHERE timestamp >= NOW() - INTERVAL '${parseInt(days)} days'
+        GROUP BY DATE(timestamp)
+      )
+      SELECT
+        date,
+        ROUND(
+          (avg_energy + avg_mood + avg_stress_inverted + avg_pain_inverted + COALESCE(avg_stool_score, 3)) / 5.0,
+          1
+        ) as wellbeing
+      FROM daily_wellbeing
+      ORDER BY date ASC
+    `;
+
+    const result = await db.query(query);
+    const dailyWellbeing = result.rows;
+
+    // Izračun 7-dnevnega drsečega povprečja
+    const withMovingAvg = dailyWellbeing.map((day, index) => {
+      if (index < 6) {
+        // Prvih 6 dni nima 7-dnevnega povprečja
+        return {
+          ...day,
+          moving_avg_7d: null
+        };
+      }
+
+      // Izračunaj povprečje zadnjih 7 dni (vključno s trenutnim)
+      const last7Days = dailyWellbeing.slice(index - 6, index + 1);
+      const sum = last7Days.reduce((acc, d) => acc + parseFloat(d.wellbeing), 0);
+      const avg = sum / 7;
+
+      return {
+        ...day,
+        moving_avg_7d: Math.round(avg * 10) / 10
+      };
+    });
+
+    res.json({
+      success: true,
+      count: withMovingAvg.length,
+      wellbeing_data: withMovingAvg
+    });
+  } catch (error) {
+    console.error('Error fetching wellbeing data:', error);
+    res.status(500).json({
+      error: 'Napaka pri pridobivanju wellbeing podatkov',
+      details: error.message
     });
   }
 });

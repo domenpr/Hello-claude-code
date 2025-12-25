@@ -333,6 +333,73 @@ app.get('/', (req, res) => {
       border-color: #667eea;
     }
 
+    /* Time selection buttons */
+    .time-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .time-btn {
+      flex: 1;
+      min-width: 120px;
+      padding: 15px 20px;
+      background: #f8f9fa;
+      border: 3px solid #e0e0e0;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #555;
+      transition: all 0.3s;
+    }
+
+    .time-btn:hover {
+      background: #e8e9ea;
+      border-color: #ccc;
+    }
+
+    .time-btn.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-color: #667eea;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Delete button for entries */
+    .delete-btn {
+      background: #ff5252;
+      color: white;
+      border: none;
+      padding: 5px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      margin-left: 10px;
+      transition: background 0.3s;
+    }
+
+    .delete-btn:hover {
+      background: #ff1744;
+    }
+
+    /* Export link */
+    .export-link {
+      display: inline-block;
+      margin-top: 15px;
+      padding: 10px 20px;
+      background: #4CAF50;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: background 0.3s;
+    }
+
+    .export-link:hover {
+      background: #45a049;
+    }
+
     @media (max-width: 768px) {
       .header h1 {
         font-size: 1.8rem;
@@ -374,6 +441,17 @@ app.get('/', (req, res) => {
     <div class="card">
       <h2>📝 Nov vnos</h2>
       <form id="entryForm">
+        <!-- Časovni gumbi za hiter vnos -->
+        <div class="form-group">
+          <label>⏰ Čas vnosa</label>
+          <div class="time-buttons">
+            <button type="button" class="time-btn" data-time="08:00">🌅 Jutro 08:00</button>
+            <button type="button" class="time-btn" data-time="14:00">☀️ Popoldne 14:00</button>
+            <button type="button" class="time-btn" data-time="21:00">🌙 Večer 21:00</button>
+          </div>
+          <input type="hidden" id="selectedTime" value="">
+        </div>
+
         <div class="form-group">
           <label>⚡ Energija (1 = zelo nizka, 5 = zelo visoka)</label>
           <div class="slider-container">
@@ -464,6 +542,19 @@ app.get('/', (req, res) => {
           <button class="filter-btn" data-days="30">30 dni</button>
           <button class="filter-btn" data-days="all">Vse</button>
         </div>
+
+        <!-- Wellbeing graf -->
+        <div style="margin-top: 40px;">
+          <h3 style="text-align: center; margin-bottom: 15px;">📊 Wellbeing indeks (1-5)</h3>
+          <div class="chart-container">
+            <canvas id="wellbeingChart"></canvas>
+          </div>
+        </div>
+
+        <!-- CSV Export -->
+        <div style="text-align: center; margin-top: 20px;">
+          <a href="/api/export/csv" class="export-link" download>📥 Izvozi v CSV (Excel)</a>
+        </div>
       </div>
     </div>
   </div>
@@ -471,7 +562,22 @@ app.get('/', (req, res) => {
   <script>
     // Globalne spremenljivke za grafe
     let mainChart = null;
+    let wellbeingChart = null;
     let currentDays = 14; // Privzeto 14 dni
+
+    // Časovni gumbi - izbira časa za vnos
+    document.querySelectorAll('.time-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Odstrani aktivnost s vseh gumbov
+        document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+        // Aktiviraj kliknjeni gumb
+        btn.classList.add('active');
+        // Shrani izbrani čas
+        document.getElementById('selectedTime').value = btn.dataset.time;
+        // Fokusiraj na prvo polje (energija)
+        document.getElementById('energy').focus();
+      });
+    });
 
     // Posodobitev vrednosti sliderjev
     ['energy', 'mood', 'stress', 'stomach_pain', 'stool'].forEach(field => {
@@ -495,6 +601,7 @@ app.get('/', (req, res) => {
         if (tab.dataset.tab === 'charts') {
           loadWeekSummary();
           loadCharts(currentDays);
+          loadWellbeingChart(currentDays);
         }
       });
     });
@@ -508,6 +615,7 @@ app.get('/', (req, res) => {
         const days = btn.dataset.days;
         currentDays = days === 'all' ? 'all' : parseInt(days);
         loadCharts(currentDays);
+        loadWellbeingChart(currentDays);
       });
     });
 
@@ -526,10 +634,24 @@ app.get('/', (req, res) => {
       e.preventDefault();
 
       const submitBtn = document.getElementById('submitBtn');
+      const selectedTime = document.getElementById('selectedTime').value;
+
+      // Preveri ali je izbran čas
+      if (!selectedTime) {
+        showMessage('⚠️ Prosim izberi čas vnosa (Jutro/Popoldne/Večer)', 'error');
+        return;
+      }
+
       submitBtn.disabled = true;
       submitBtn.textContent = 'Shranjujem...';
 
+      // Ustvari timestamp za danes + izbran čas
+      const today = new Date();
+      const [hours, minutes] = selectedTime.split(':');
+      const timestamp = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hours, minutes);
+
       const formData = {
+        timestamp: timestamp.toISOString(),
         energy: parseInt(document.getElementById('energy').value),
         mood: parseInt(document.getElementById('mood').value),
         stress: parseInt(document.getElementById('stress').value),
@@ -551,7 +673,12 @@ app.get('/', (req, res) => {
 
         if (response.ok) {
           showMessage('✅ Vnos uspešno shranjen!', 'success');
+
+          // Shrani trenutno aktivni čas pred reset-om
+          const activeTimeBtn = document.querySelector('.time-btn.active');
+
           document.getElementById('entryForm').reset();
+
           // Reset slider displays
           ['energy', 'mood', 'stress'].forEach(f => {
             document.getElementById(f + 'Value').textContent = '3';
@@ -559,10 +686,17 @@ app.get('/', (req, res) => {
           document.getElementById('stomach_painValue').textContent = '1';
           document.getElementById('stoolValue').textContent = '4';
 
+          // Obdrži aktivnost časovnega gumba za hiter vnos
+          if (activeTimeBtn) {
+            activeTimeBtn.classList.add('active');
+            document.getElementById('selectedTime').value = activeTimeBtn.dataset.time;
+          }
+
           // Osveži prikaz
           loadEntries();
           loadWeekSummary();
           loadCharts(currentDays);
+          loadWellbeingChart(currentDays);
         } else {
           showMessage('❌ ' + (data.error || 'Napaka pri shranjevanju'), 'error');
         }
@@ -587,14 +721,17 @@ app.get('/', (req, res) => {
           list.innerHTML = data.entries.map(entry => {
             const date = new Date(entry.timestamp).toLocaleString('sl-SI');
             return \`
-              <div class="entry-item">
-                <div class="entry-date">\${date}</div>
+              <div class="entry-item" id="entry-\${entry.id}">
+                <div class="entry-date">
+                  \${date}
+                  <button class="delete-btn" onclick="deleteEntry(\${entry.id})">🗑️ Izbriši</button>
+                </div>
                 <div class="entry-stats">
                   <div class="stat">⚡ Energija: <strong>\${entry.energy}/5</strong></div>
                   <div class="stat">😊 Razpoloženje: <strong>\${entry.mood}/5</strong></div>
                   <div class="stat">😰 Stres: <strong>\${entry.stress}/5</strong></div>
                   <div class="stat">🤕 Bolečina: <strong>\${entry.stomach_pain}/5</strong></div>
-                  <div class="stat">💩 Blato: <strong>\${entry.stool}/5</strong> \${entry.stool === 4 ? '✅' : ''}</div>
+                  <div class="stat">💩 Blato: <strong>\${entry.stool || 'N/A'}/5</strong> \${entry.stool === 4 ? '✅' : ''}</div>
                 </div>
                 \${entry.note ? '<div class="entry-note">"' + entry.note + '"</div>' : ''}
               </div>
@@ -607,6 +744,35 @@ app.get('/', (req, res) => {
         console.error('Error loading entries:', error);
         document.getElementById('entriesList').innerHTML =
           '<p style="text-align: center; color: #999;">Napaka pri nalaganju vnosov</p>';
+      }
+    }
+
+    // Izbriši vnos
+    async function deleteEntry(id) {
+      if (!confirm('Ali si prepričan, da želiš izbrisati ta vnos?')) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/entries/' + id, {
+          method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          showMessage('✅ Vnos uspešno izbrisan', 'success');
+          // Osveži seznam
+          loadEntries();
+          loadWeekSummary();
+          loadCharts(currentDays);
+          loadWellbeingChart(currentDays);
+        } else {
+          showMessage('❌ ' + (data.error || 'Napaka pri brisanju'), 'error');
+        }
+      } catch (error) {
+        showMessage('❌ Napaka pri povezavi s strežnikom', 'error');
+        console.error('Error:', error);
       }
     }
 
@@ -831,6 +997,137 @@ app.get('/', (req, res) => {
         console.log('Chart loaded successfully with ' + entries.length + ' entries');
       } catch (error) {
         console.error('Error loading charts:', error);
+      }
+    }
+
+    // Naloži wellbeing graf - indeks dobrega počutja
+    async function loadWellbeingChart(days = 14) {
+      try {
+        const apiDays = days === 'all' ? 365 : days;
+        const response = await fetch('/api/wellbeing?days=' + apiDays);
+        const data = await response.json();
+
+        if (!data.wellbeing_data || data.wellbeing_data.length === 0) {
+          console.log('No wellbeing data found');
+          return;
+        }
+
+        const wellbeingData = data.wellbeing_data;
+
+        // Pripravi oznake (datumi)
+        const labels = wellbeingData.map(d => {
+          const date = new Date(d.date);
+          return date.toLocaleDateString('sl-SI', { month: 'short', day: 'numeric' });
+        });
+
+        // Dnevni wellbeing indeks
+        const dailyWellbeing = wellbeingData.map(d => parseFloat(d.wellbeing));
+
+        // 7-dnevno drseče povprečje
+        const movingAvg = wellbeingData.map(d => d.moving_avg_7d);
+
+        // Ustvari graf
+        const ctx = document.getElementById('wellbeingChart').getContext('2d');
+        if (wellbeingChart) wellbeingChart.destroy();
+
+        wellbeingChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Dnevni wellbeing',
+                data: dailyWellbeing,
+                borderColor: '#9C27B0',
+                backgroundColor: 'rgba(156, 39, 176, 0.1)',
+                tension: 0.3,
+                borderWidth: 2,
+                pointRadius: 3,
+                fill: true
+              },
+              {
+                label: '7-dnevno povprečje',
+                data: movingAvg,
+                borderColor: '#FF5722',
+                backgroundColor: 'transparent',
+                tension: 0.3,
+                borderWidth: 3,
+                pointRadius: 0,
+                borderDash: [5, 5]
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              mode: 'index',
+              intersect: false
+            },
+            plugins: {
+              title: {
+                display: false
+              },
+              legend: {
+                display: true,
+                position: 'bottom',
+                labels: {
+                  usePointStyle: true,
+                  padding: 12,
+                  font: { size: 11 }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    let label = context.dataset.label || '';
+                    if (label) {
+                      label += ': ';
+                    }
+                    if (context.parsed.y !== null) {
+                      label += context.parsed.y.toFixed(1);
+                    }
+                    return label;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                ticks: {
+                  maxRotation: 45,
+                  minRotation: 30,
+                  autoSkip: true,
+                  maxTicksLimit: wellbeingData.length > 30 ? 10 : 20,
+                  font: { size: 10 }
+                },
+                grid: {
+                  display: false
+                }
+              },
+              y: {
+                min: 1,
+                max: 5,
+                ticks: {
+                  stepSize: 0.5,
+                  font: { size: 11 }
+                },
+                title: {
+                  display: true,
+                  text: 'Wellbeing (1-5)',
+                  font: { size: 11, weight: 'bold' }
+                },
+                grid: {
+                  color: 'rgba(0, 0, 0, 0.1)'
+                }
+              }
+            }
+          }
+        });
+
+        console.log('Wellbeing chart loaded with ' + wellbeingData.length + ' days');
+      } catch (error) {
+        console.error('Error loading wellbeing chart:', error);
       }
     }
 
