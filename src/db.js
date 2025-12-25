@@ -61,11 +61,18 @@ async function initializeDatabase() {
         mood INTEGER NOT NULL CHECK (mood >= 1 AND mood <= 5),
         stress INTEGER NOT NULL CHECK (stress >= 1 AND stress <= 5),
         stomach_pain INTEGER NOT NULL CHECK (stomach_pain >= 1 AND stomach_pain <= 5),
-        stool INTEGER NOT NULL CHECK (stool >= 1 AND stool <= 5),
+        stool INTEGER CHECK (stool >= 1 AND stool <= 5),
         note TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Za obstoječe tabele - dovoli NULL vrednosti za stool
+    await pool.query(`
+      ALTER TABLE entries ALTER COLUMN stool DROP NOT NULL
+    `).catch(() => {
+      // Ignore error če stolpec že dovoli NULL
+    });
 
     // Ustvari index če ne obstaja
     await pool.query(`
