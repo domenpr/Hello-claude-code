@@ -75,13 +75,13 @@ router.get('/entries', async (req, res) => {
     if (days && days !== 'all') {
       const daysNum = parseInt(days);
 
-      // POMEMBNO: Uporabljaj CURRENT_TIMESTAMP (timezone aware) namesto NOW()
-      whereClause = ` WHERE timestamp >= CURRENT_TIMESTAMP - INTERVAL '${daysNum} days'`;
+      // TIMEZONE FIX: Uporabi DATE() cast za primerjavo brez ur
+      whereClause = ` WHERE DATE(timestamp) >= CURRENT_DATE - INTERVAL '${daysNum} days'`;
 
       console.log('🔍 GRAPH DEBUG - Filter query:', {
         requestedDays: days,
         daysNum: daysNum,
-        currentTimestamp: new Date().toISOString(),
+        currentDate: new Date().toISOString().split('T')[0],
         whereClause: whereClause
       });
     } else if (from || to) {
@@ -452,7 +452,7 @@ router.get('/wellbeing', async (req, res) => {
     //   - bolečina: višje = slabše → obrni (6 - bolečina)
     //   - blato: 4 = idealno (5 točk), 3 ali 5 = (3 točke), 1 ali 2 = (1 točka)
 
-    // POMEMBNO: Uporabljaj CURRENT_TIMESTAMP (timezone aware)
+    // TIMEZONE FIX: Uporabi DATE() cast za primerjavo brez ur in timezone-ov
     const query = `
       WITH daily_wellbeing AS (
         SELECT
@@ -471,7 +471,7 @@ router.get('/wellbeing', async (req, res) => {
             END
           ) as avg_stool_score
         FROM entries
-        WHERE timestamp >= CURRENT_TIMESTAMP - INTERVAL '${daysNum} days'
+        WHERE DATE(timestamp) >= CURRENT_DATE - INTERVAL '${daysNum} days'
         GROUP BY DATE(timestamp)
       )
       SELECT
