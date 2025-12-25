@@ -616,8 +616,8 @@ router.post('/admin/import-historical', async (req, res) => {
   }
 });
 
-// POST /api/admin/fix-year - Fix year from 2024 to 2025 for historical data
-router.post('/admin/fix-year', async (req, res) => {
+// GET /api/admin/fix-year - Fix year from 2024 to 2025 for historical data
+router.get('/admin/fix-year', async (req, res) => {
   try {
     // Check if import is enabled via environment variable
     if (process.env.ENABLE_IMPORT !== '1') {
