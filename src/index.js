@@ -276,50 +276,39 @@ app.get('/', (req, res) => {
       display: block;
     }
 
-    /* Summary cards */
-    .summary-cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
-      margin-bottom: 30px;
-    }
-
-    .summary-card {
+    /* Summary line - kompaktna 1 vrstica */
+    .summary-line {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-    }
-
-    .summary-card h3 {
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
       font-size: 0.9rem;
-      opacity: 0.9;
-      margin-bottom: 10px;
-      font-weight: 500;
     }
 
-    .summary-card .value {
-      font-size: 2rem;
-      font-weight: bold;
-      margin-bottom: 5px;
+    .summary-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    .summary-card .trend {
-      font-size: 0.85rem;
-      opacity: 0.9;
+    .summary-item strong {
+      font-size: 1.1rem;
     }
 
-    .trend.up::before { content: '↑ '; }
-    .trend.down::before { content: '↓ '; }
-    .trend.stable::before { content: '→ '; }
-
-    /* Time filters */
+    /* Time filters - pod grafom */
     .time-filters {
       display: flex;
       gap: 10px;
-      margin-bottom: 25px;
+      margin-top: 20px;
+      margin-bottom: 10px;
       flex-wrap: wrap;
+      justify-content: center;
     }
 
     .filter-btn {
@@ -354,20 +343,21 @@ app.get('/', (req, res) => {
       }
 
       .chart-container {
-        height: 350px;
+        height: 400px;
       }
 
-      .summary-cards {
-        grid-template-columns: 1fr 1fr;
+      .summary-line {
+        font-size: 0.85rem;
+        padding: 10px 15px;
       }
 
-      .summary-card .value {
-        font-size: 1.6rem;
+      .summary-item strong {
+        font-size: 1rem;
       }
 
       .filter-btn {
-        flex: 1;
-        min-width: calc(50% - 5px);
+        padding: 8px 16px;
+        font-size: 0.9rem;
       }
     }
   </style>
@@ -409,7 +399,7 @@ app.get('/', (req, res) => {
         </div>
 
         <div class="form-group">
-          <label>🤕 Bolečina v trebuhu (1 = brez bolečine, 5 = huda bolečina)</label>
+          <label>🤕 Bolečina v trebuhu (1 = brez, 5 = huda)</label>
           <div class="slider-container">
             <input type="range" id="stomach_pain" name="stomach_pain" min="1" max="5" value="1">
             <span class="value-display" id="stomach_painValue">1</span>
@@ -417,7 +407,7 @@ app.get('/', (req, res) => {
         </div>
 
         <div class="form-group">
-          <label>💩 Blato (1 = zelo slabo, 4 = idealno, 5 = slabo)</label>
+          <label>💩 Blato (1 = trdo, 4 = idealno)</label>
           <div class="slider-container">
             <input type="range" id="stool" name="stool" min="1" max="5" value="4">
             <span class="value-display" id="stoolValue">4</span>
@@ -446,39 +436,33 @@ app.get('/', (req, res) => {
       </div>
 
       <div class="tab-content" id="charts">
-        <!-- 7-dnevni povzetek kartice -->
-        <div class="summary-cards" id="weekSummary">
-          <div class="summary-card">
-            <h3>Energija (7 dni povpr.)</h3>
-            <div class="value" id="summaryEnergy">-</div>
-            <div class="trend" id="summaryEnergyTrend"></div>
+        <!-- Kompaktni povzetek - 1 vrstica -->
+        <div class="summary-line" id="weekSummary">
+          <div class="summary-item">
+            <span>⚡ Energija (7d):</span>
+            <strong id="summaryEnergy">-</strong>
           </div>
-          <div class="summary-card">
-            <h3>Stres (7 dni povpr.)</h3>
-            <div class="value" id="summaryStress">-</div>
-            <div class="trend" id="summaryStressTrend"></div>
+          <div class="summary-item">
+            <span>😰 Stres (7d):</span>
+            <strong id="summaryStress">-</strong>
           </div>
-          <div class="summary-card">
-            <h3>Idealno blato (%)</h3>
-            <div class="value" id="summaryStool">-</div>
-            <div class="trend">7-dnevni prikaz</div>
+          <div class="summary-item">
+            <span>💩 Idealno:</span>
+            <strong id="summaryStool">-</strong>
           </div>
         </div>
 
-        <!-- Časovni filtri -->
+        <!-- Glavni graf z vsemi 5 indikatorji -->
+        <div class="chart-container">
+          <canvas id="mainChart"></canvas>
+        </div>
+
+        <!-- Časovni filtri pod grafom -->
         <div class="time-filters">
           <button class="filter-btn" data-days="7">7 dni</button>
           <button class="filter-btn active" data-days="14">14 dni</button>
           <button class="filter-btn" data-days="30">30 dni</button>
           <button class="filter-btn" data-days="all">Vse</button>
-        </div>
-
-        <!-- Grafi -->
-        <div class="chart-container">
-          <canvas id="healthChart"></canvas>
-        </div>
-        <div class="chart-container" style="margin-top: 40px;">
-          <canvas id="stoolChart"></canvas>
         </div>
       </div>
     </div>
@@ -486,8 +470,7 @@ app.get('/', (req, res) => {
 
   <script>
     // Globalne spremenljivke za grafe
-    let healthChart = null;
-    let stoolChart = null;
+    let mainChart = null;
     let currentDays = 14; // Privzeto 14 dni
 
     // Posodobitev vrednosti sliderjev
@@ -636,7 +619,7 @@ app.get('/', (req, res) => {
         if (data.success && data.week_summary) {
           const summary = data.week_summary;
 
-          // Posodobi kartice
+          // Posodobi kompaktno povzetek vrstico
           document.getElementById('summaryEnergy').textContent =
             summary.avg_energy ? parseFloat(summary.avg_energy).toFixed(1) : '-';
 
@@ -645,108 +628,103 @@ app.get('/', (req, res) => {
 
           document.getElementById('summaryStool').textContent =
             summary.ideal_stool_percentage !== undefined ? summary.ideal_stool_percentage + '%' : '-';
-
-          // Posodobi trend oznake
-          const energyTrend = document.getElementById('summaryEnergyTrend');
-          energyTrend.className = 'trend ' + summary.energy_trend;
-          energyTrend.textContent = summary.energy_trend === 'up' ? 'napredek' :
-                                    summary.energy_trend === 'down' ? 'upadanje' : 'stabilno';
-
-          const stressTrend = document.getElementById('summaryStressTrend');
-          stressTrend.className = 'trend ' + summary.stress_trend;
-          stressTrend.textContent = summary.stress_trend === 'up' ? 'povečanje' :
-                                    summary.stress_trend === 'down' ? 'zmanjšanje' : 'stabilno';
         }
       } catch (error) {
         console.error('Error loading week summary:', error);
       }
     }
 
-    // Naloži grafe
+    // Naloži grafe - en glavni graf z vsemi 5 indikatorji
     async function loadCharts(days = 14) {
       try {
-        // Za 30+ dni uporabljamo dnevno agregacijo
-        const useAggregation = days >= 30 || days === 'all';
-        let apiUrl = '';
-        let entries = [];
-        let labels = [];
+        // Enostavno pridobivanje podatkov - brez agregacije
+        const apiUrl = days === 'all' ? '/api/entries?limit=1000' : '/api/entries?days=' + days + '&limit=1000';
+        const response = await fetch(apiUrl);
+        const data = await response.json();
 
-        if (useAggregation) {
-          // Dnevna agregacija
-          apiUrl = days === 'all' ? '/api/entries/daily?days=365' : '/api/entries/daily?days=' + days;
-          const response = await fetch(apiUrl);
-          const data = await response.json();
+        if (!data.entries || data.entries.length === 0) {
+          console.log('No entries found');
+          return;
+        }
 
-          if (!data.daily_entries || data.daily_entries.length === 0) {
-            return;
-          }
+        // Razvrsti po času (najstarejši prvi za prikaz na grafu)
+        const entries = data.entries.reverse();
 
-          // Razvrsti po datumu (najstarejši prvi)
-          entries = data.daily_entries.reverse();
-
-          labels = entries.map(e => {
-            const d = new Date(e.date);
+        // Pripravi oznake za X-os
+        const labels = entries.map(e => {
+          const d = new Date(e.timestamp);
+          // Prikaži datum + uro (ali samo datum če je veliko podatkov)
+          if (entries.length > 60) {
             return d.toLocaleDateString('sl-SI', { month: 'short', day: 'numeric' });
-          });
-        } else {
-          // Običajni prikaz (3×/dan)
-          apiUrl = days === 'all' ? '/api/entries?limit=1000' : '/api/entries?days=' + days + '&limit=1000';
-          const response = await fetch(apiUrl);
-          const data = await response.json();
-
-          if (!data.entries || data.entries.length === 0) {
-            return;
-          }
-
-          // Razvrsti po času (najstarejši prvi za graf)
-          entries = data.entries.reverse();
-
-          labels = entries.map(e => {
-            const d = new Date(e.timestamp);
-            // Za mobilni prikaz - manj goste oznake
+          } else {
             return d.toLocaleDateString('sl-SI', {
               month: 'short',
               day: 'numeric',
-              hour: entries.length > 50 ? undefined : '2-digit',
-              minute: entries.length > 50 ? undefined : '2-digit'
+              hour: '2-digit'
             });
-          });
-        }
+          }
+        });
 
-        // Graf za energijo, stres in bolečino v trebuhu
-        const ctx1 = document.getElementById('healthChart').getContext('2d');
-        if (healthChart) healthChart.destroy();
+        // Ustvari glavni graf z vsemi 5 indikatorji
+        const ctx = document.getElementById('mainChart').getContext('2d');
+        if (mainChart) mainChart.destroy();
 
-        healthChart = new Chart(ctx1, {
+        mainChart = new Chart(ctx, {
           type: 'line',
           data: {
             labels: labels,
             datasets: [
               {
                 label: 'Energija',
-                data: entries.map(e => useAggregation ? parseFloat(e.avg_energy) : e.energy),
+                data: entries.map(e => e.energy),
                 borderColor: '#4CAF50',
                 backgroundColor: 'rgba(76, 175, 80, 0.1)',
-                tension: 0.4,
+                tension: 0.3,
+                borderWidth: 2,
+                pointRadius: 3,
                 yAxisID: 'y'
               },
               {
                 label: 'Stres',
-                data: entries.map(e => useAggregation ? parseFloat(e.avg_stress) : e.stress),
+                data: entries.map(e => e.stress),
                 borderColor: '#FF9800',
                 backgroundColor: 'rgba(255, 152, 0, 0.1)',
-                tension: 0.4,
+                tension: 0.3,
+                borderWidth: 2,
+                pointRadius: 3,
                 yAxisID: 'y'
               },
               {
-                label: 'Bolečina v trebuhu',
-                data: entries.map(e => useAggregation ? e.max_stomach_pain : e.stomach_pain),
+                label: 'Psiha',
+                data: entries.map(e => e.mood),
+                borderColor: '#2196F3',
+                backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                tension: 0.3,
+                borderWidth: 2,
+                pointRadius: 3,
+                yAxisID: 'y'
+              },
+              {
+                label: 'Bolečina',
+                data: entries.map(e => e.stomach_pain),
                 borderColor: '#F44336',
-                backgroundColor: 'rgba(244, 67, 54, 0.3)',
-                tension: 0.4,
-                borderWidth: 3,
+                backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                tension: 0.3,
+                borderWidth: 2,
                 pointRadius: 4,
-                yAxisID: 'y2' // Sekundarna os
+                yAxisID: 'y'
+              },
+              {
+                label: 'Blato',
+                data: entries.map(e => e.stool),
+                borderColor: '#9C27B0',
+                backgroundColor: entries.map(e => e.stool === 4 ? 'rgba(76, 175, 80, 0.6)' : 'rgba(255, 193, 7, 0.6)'),
+                tension: 0,
+                borderWidth: 2,
+                pointRadius: 5,
+                pointStyle: 'circle',
+                yAxisID: 'y2',
+                spanGaps: true // Preskoči NULL vrednosti
               }
             ]
           },
@@ -760,14 +738,35 @@ app.get('/', (req, res) => {
             plugins: {
               title: {
                 display: true,
-                text: useAggregation ? 'Dnevno povprečje' : 'Energija, Stres in Bolečina',
-                font: { size: 16 }
+                text: 'Vseh 5 zdravstvenih indikatorjev',
+                font: { size: 16, weight: 'bold' }
               },
               legend: {
                 display: true,
+                position: 'bottom',
                 labels: {
                   usePointStyle: true,
-                  padding: 15
+                  padding: 12,
+                  font: { size: 11 }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    let label = context.dataset.label || '';
+                    if (label) {
+                      label += ': ';
+                    }
+                    if (context.parsed.y !== null) {
+                      label += context.parsed.y;
+                      // Dodaj opis za blato
+                      if (context.dataset.label === 'Blato') {
+                        const stoolLabels = ['', 'trdo', 'srednje', 'normalno', 'idealno', 'mehko'];
+                        label += ' (' + stoolLabels[context.parsed.y] + ')';
+                      }
+                    }
+                    return label;
+                  }
                 }
               }
             },
@@ -777,7 +776,11 @@ app.get('/', (req, res) => {
                   maxRotation: 45,
                   minRotation: 30,
                   autoSkip: true,
-                  maxTicksLimit: entries.length > 50 ? 15 : 30
+                  maxTicksLimit: entries.length > 60 ? 12 : 20,
+                  font: { size: 10 }
+                },
+                grid: {
+                  display: false
                 }
               },
               y: {
@@ -786,27 +789,36 @@ app.get('/', (req, res) => {
                 min: 1,
                 max: 5,
                 ticks: {
-                  stepSize: 1
+                  stepSize: 1,
+                  font: { size: 11 }
                 },
                 title: {
                   display: true,
-                  text: 'Energija / Stres (1-5)',
-                  font: { size: 12 }
+                  text: 'Energija / Stres / Psiha / Bolečina (1-5)',
+                  font: { size: 11, weight: 'bold' }
+                },
+                grid: {
+                  color: 'rgba(0, 0, 0, 0.1)'
                 }
               },
               y2: {
                 type: 'linear',
                 position: 'right',
-                min: 0,
+                min: 1,
                 max: 5,
                 ticks: {
-                  stepSize: 1
+                  stepSize: 1,
+                  font: { size: 11 },
+                  callback: function(value) {
+                    const labels = ['', 'trdo', 'srednje', 'normalno', 'idealno', 'mehko'];
+                    return labels[value] || '';
+                  }
                 },
                 title: {
                   display: true,
-                  text: 'Bolečina (0-5)',
-                  font: { size: 12 },
-                  color: '#F44336'
+                  text: 'Blato (1-5)',
+                  font: { size: 11, weight: 'bold' },
+                  color: '#9C27B0'
                 },
                 grid: {
                   drawOnChartArea: false
@@ -816,92 +828,7 @@ app.get('/', (req, res) => {
           }
         });
 
-        // Graf za blato
-        const ctx2 = document.getElementById('stoolChart').getContext('2d');
-        if (stoolChart) stoolChart.destroy();
-
-        // Filtriraj samo vnose kjer je stool definiran (jutro)
-        const stoolEntries = entries.filter(e => useAggregation ? e.last_stool !== null : e.stool !== null);
-        const stoolLabels = stoolEntries.map((e, i) => {
-          if (useAggregation) {
-            const d = new Date(e.date);
-            return d.toLocaleDateString('sl-SI', { month: 'short', day: 'numeric' });
-          } else {
-            const d = new Date(e.timestamp);
-            return d.toLocaleDateString('sl-SI', {
-              month: 'short',
-              day: 'numeric',
-              hour: stoolEntries.length > 30 ? undefined : '2-digit'
-            });
-          }
-        });
-
-        const stoolData = stoolEntries.map(e => useAggregation ? e.last_stool : e.stool);
-
-        stoolChart = new Chart(ctx2, {
-          type: 'bar',
-          data: {
-            labels: stoolLabels,
-            datasets: [
-              {
-                label: 'Blato',
-                data: stoolData,
-                backgroundColor: stoolData.map(v => v === 4 ? '#4CAF50' : '#FFC107'),
-                borderColor: stoolData.map(v => v === 4 ? '#388E3C' : '#FFA000'),
-                borderWidth: 2
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              title: {
-                display: true,
-                text: 'Blato: 4 = idealno (zeleno)',
-                font: { size: 16 }
-              },
-              legend: {
-                display: false
-              },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    const value = context.parsed.y;
-                    const labels = ['', 'trdo', 'srednje', 'normalno', 'idealno', 'mehko'];
-                    return labels[value] + ' (' + value + ')';
-                  }
-                }
-              }
-            },
-            scales: {
-              x: {
-                ticks: {
-                  maxRotation: 45,
-                  minRotation: 30,
-                  autoSkip: true,
-                  maxTicksLimit: stoolEntries.length > 30 ? 10 : 20
-                }
-              },
-              y: {
-                min: 0,
-                max: 5,
-                ticks: {
-                  stepSize: 1,
-                  callback: function(value) {
-                    const labels = ['', 'trdo', 'srednje', 'normalno', 'idealno', 'mehko'];
-                    return labels[value] || '';
-                  }
-                },
-                title: {
-                  display: true,
-                  text: 'Kvaliteta blata',
-                  font: { size: 12 }
-                }
-              }
-            }
-          }
-        });
+        console.log('Chart loaded successfully with ' + entries.length + ' entries');
       } catch (error) {
         console.error('Error loading charts:', error);
       }
