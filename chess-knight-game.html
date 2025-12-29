@@ -296,7 +296,7 @@
                         </div>
                         <div class="stat-item">
                             <div class="stat-label">Preostale</div>
-                            <div class="stat-value" id="remaining">30</div>
+                            <div class="stat-value" id="remaining">31</div>
                         </div>
                         <div class="stat-item">
                             <div class="stat-label">Možne poteze</div>
@@ -340,28 +340,28 @@
             [1, -2], [1, 2], [2, -1], [2, 1]
         ];
 
-        // Initialize board with classical chess setup (compressed to 4 rows)
+        // Initialize board with classical chess setup (compressed to 4 rows at bottom)
         function initializeBoard() {
             // Clear board
             board = Array(8).fill().map(() => Array(8).fill(null));
 
-            // Black pieces (rows 0-1)
-            const backRow = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'];
+            // Black pieces (rows 4-5, bottom area)
+            const blackBackRow = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'];
             for (let col = 0; col < 8; col++) {
-                board[0][col] = backRow[col];
-                board[1][col] = 'p';
+                board[4][col] = blackBackRow[col];
+                board[5][col] = 'p';
             }
 
-            // White pieces (rows 2-3, normally would be 6-7)
+            // White pieces (rows 6-7, bottom area)
             for (let col = 0; col < 8; col++) {
-                board[2][col] = 'P';
+                board[6][col] = 'P';
             }
             const whiteBackRow = ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'];
             for (let col = 0; col < 8; col++) {
-                board[3][col] = whiteBackRow[col];
+                board[7][col] = whiteBackRow[col];
             }
 
-            // Place knight at a1 (bottom-left: row 7, col 0)
+            // Replace white knight at a1 (row 7, col 0) with active KNIGHT
             board[7][0] = 'KNIGHT';
             knightPos = { row: 7, col: 0 };
 
@@ -369,7 +369,7 @@
             stats = {
                 moves: 0,
                 captured: 0,
-                remaining: 30 // 16 black + 16 white - 2 knights = 30
+                remaining: 31 // 32 total pieces - 1 knight = 31
             };
 
             updateStats();
@@ -421,71 +421,68 @@
             return validMoves;
         }
 
-        // Update possible moves count
+        // Update possible moves count (only capture moves)
         function updatePossibleMoves() {
             const validMoves = getValidMoves(knightPos.row, knightPos.col);
-            document.getElementById('possible').textContent = validMoves.length;
+            const captureMoves = validMoves.filter(move =>
+                board[move.row][move.col] !== null
+            );
+            document.getElementById('possible').textContent = captureMoves.length;
         }
 
-        // Random algorithm
+        // Random algorithm (only capture moves)
         function selectMoveRandom() {
             const validMoves = getValidMoves(knightPos.row, knightPos.col);
             if (validMoves.length === 0) return null;
-            return validMoves[Math.floor(Math.random() * validMoves.length)];
+
+            // Only allow capture moves
+            const captureMoves = validMoves.filter(move =>
+                board[move.row][move.col] !== null
+            );
+
+            if (captureMoves.length === 0) return null;
+            return captureMoves[Math.floor(Math.random() * captureMoves.length)];
         }
 
-        // Greedy algorithm (prioritize captures)
+        // Greedy algorithm (only capture moves)
         function selectMoveGreedy() {
             const validMoves = getValidMoves(knightPos.row, knightPos.col);
             if (validMoves.length === 0) return null;
 
-            // Find moves that capture a piece
+            // Only allow capture moves
             const captureMoves = validMoves.filter(move =>
                 board[move.row][move.col] !== null
             );
 
-            if (captureMoves.length > 0) {
-                return captureMoves[Math.floor(Math.random() * captureMoves.length)];
-            }
-
-            // If no captures available, random move
-            return validMoves[Math.floor(Math.random() * validMoves.length)];
+            if (captureMoves.length === 0) return null;
+            return captureMoves[Math.floor(Math.random() * captureMoves.length)];
         }
 
-        // Smart algorithm (Warnsdorff's algorithm with capture priority)
+        // Smart algorithm (Warnsdorff's algorithm - only capture moves)
         function selectMoveSmart() {
             const validMoves = getValidMoves(knightPos.row, knightPos.col);
             if (validMoves.length === 0) return null;
 
-            // Prioritize captures
+            // Only allow capture moves
             const captureMoves = validMoves.filter(move =>
                 board[move.row][move.col] !== null
             );
 
-            if (captureMoves.length > 0) {
-                // Among capture moves, choose the one with fewest onward moves (Warnsdorff)
-                let bestMove = captureMoves[0];
-                let minOnwardMoves = Infinity;
+            if (captureMoves.length === 0) return null;
 
-                for (const move of captureMoves) {
-                    const onwardMoves = getValidMoves(move.row, move.col).length;
-                    if (onwardMoves < minOnwardMoves) {
-                        minOnwardMoves = onwardMoves;
-                        bestMove = move;
-                    }
-                }
+            // Among capture moves, choose the one with most onward capture opportunities
+            let bestMove = captureMoves[0];
+            let maxOnwardCaptures = -1;
 
-                return bestMove;
-            }
+            for (const move of captureMoves) {
+                // Count how many captures are possible from this position
+                const onwardMoves = getValidMoves(move.row, move.col);
+                const onwardCaptures = onwardMoves.filter(m =>
+                    board[m.row][m.col] !== null
+                ).length;
 
-            // If no captures, use Warnsdorff's rule
-            let bestMove = validMoves[0];
-            let minOnwardMoves = Infinity;
-
-            for (const move of validMoves) {
-                const onwardMoves = getValidMoves(move.row, move.col).length;
-                if (onwardMoves < minOnwardMoves) {
-                    minOnwardMoves = onwardMoves;
+                if (onwardCaptures > maxOnwardCaptures) {
+                    maxOnwardCaptures = onwardCaptures;
                     bestMove = move;
                 }
             }
@@ -509,7 +506,7 @@
 
         // Move knight
         function moveKnight(newPos) {
-            // Check if capturing a piece
+            // Check if capturing a piece (must always be true with new rules)
             const captured = board[newPos.row][newPos.col] !== null;
 
             // Move knight
@@ -528,9 +525,13 @@
             renderBoard();
             highlightLastMove(newPos);
 
-            // Check if game over
+            // Check if game over (no more capture moves available)
             const validMoves = getValidMoves(knightPos.row, knightPos.col);
-            if (validMoves.length === 0 || stats.remaining === 0) {
+            const captureMoves = validMoves.filter(move =>
+                board[move.row][move.col] !== null
+            );
+
+            if (captureMoves.length === 0 || stats.remaining === 0) {
                 endGame();
             }
         }
@@ -594,7 +595,7 @@
             stopGame();
             const gameOverDiv = document.getElementById('game-over');
             const finalStats = document.getElementById('final-stats');
-            finalStats.textContent = `Poteze: ${stats.moves} | Pobrane: ${stats.captured}/${30} | Preostale: ${stats.remaining}`;
+            finalStats.textContent = `Poteze: ${stats.moves} | Pobrane: ${stats.captured}/${31} | Preostale: ${stats.remaining}`;
             gameOverDiv.classList.add('show');
         }
 
