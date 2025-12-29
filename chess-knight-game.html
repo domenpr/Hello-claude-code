@@ -261,6 +261,9 @@
                     <div class="button-group">
                         <button class="btn-algorithm active" id="algo-smart" onclick="selectAlgorithm('smart')">🧠 Pameten</button>
                     </div>
+                    <div class="button-group">
+                        <button class="btn-algorithm" id="algo-perfect" onclick="selectAlgorithm('perfect')">🏆 Popolno</button>
+                    </div>
                 </div>
 
                 <div class="control-section">
@@ -526,8 +529,8 @@
             updateStats();
             renderBoard();
 
-            // Compute optimal path for smart algorithm (async to avoid blocking UI)
-            if (currentAlgorithm === 'smart') {
+            // Compute optimal path for perfect algorithm (async to avoid blocking UI)
+            if (currentAlgorithm === 'perfect') {
                 setTimeout(() => {
                     computeOptimalPath();
                 }, 100);
@@ -616,8 +619,41 @@
             return captureMoves[Math.floor(Math.random() * captureMoves.length)];
         }
 
-        // Smart algorithm (uses precomputed optimal path via backtracking)
+        // Smart algorithm (Warnsdorff's heuristic - instant, no waiting)
         function selectMoveSmart() {
+            const validMoves = getValidMoves(knightPos.row, knightPos.col);
+            if (validMoves.length === 0) return null;
+
+            // Only allow capture moves
+            const captureMoves = validMoves.filter(move =>
+                board[move.row][move.col] !== null
+            );
+
+            if (captureMoves.length === 0) return null;
+
+            // Warnsdorff's heuristic: choose capture with FEWEST onward captures
+            // This prevents getting stuck in corners early
+            let bestMove = captureMoves[0];
+            let minOnwardCaptures = Infinity;
+
+            for (const move of captureMoves) {
+                // Count onward capture possibilities
+                const onwardMoves = getValidMoves(move.row, move.col);
+                const onwardCaptures = onwardMoves.filter(m =>
+                    board[m.row][m.col] !== null && !(m.row === knightPos.row && m.col === knightPos.col)
+                ).length;
+
+                if (onwardCaptures < minOnwardCaptures) {
+                    minOnwardCaptures = onwardCaptures;
+                    bestMove = move;
+                }
+            }
+
+            return bestMove;
+        }
+
+        // Perfect algorithm (uses precomputed optimal path via backtracking)
+        function selectMovePerfect() {
             // If path is being computed, wait
             if (isComputingPath) {
                 return null;
@@ -630,16 +666,8 @@
                 return nextMove;
             }
 
-            // Fallback: if no path available, use greedy approach
-            const validMoves = getValidMoves(knightPos.row, knightPos.col);
-            if (validMoves.length === 0) return null;
-
-            const captureMoves = validMoves.filter(move =>
-                board[move.row][move.col] !== null
-            );
-
-            if (captureMoves.length === 0) return null;
-            return captureMoves[Math.floor(Math.random() * captureMoves.length)];
+            // Fallback: if no path available, use smart heuristic
+            return selectMoveSmart();
         }
 
         // Select move based on current algorithm
@@ -651,6 +679,8 @@
                     return selectMoveGreedy();
                 case 'smart':
                     return selectMoveSmart();
+                case 'perfect':
+                    return selectMovePerfect();
                 default:
                     return selectMoveSmart();
             }
@@ -761,8 +791,8 @@
             });
             document.getElementById(`algo-${algo}`).classList.add('active');
 
-            // If smart algorithm is selected and path not computed, compute it
-            if (algo === 'smart' && optimalPath.length === 0 && !isComputingPath) {
+            // If perfect algorithm is selected and path not computed, compute it
+            if (algo === 'perfect' && optimalPath.length === 0 && !isComputingPath) {
                 setTimeout(() => {
                     computeOptimalPath();
                 }, 100);
