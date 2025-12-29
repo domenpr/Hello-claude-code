@@ -309,6 +309,11 @@
                     🎉 Igra končana! <br>
                     <span id="final-stats"></span>
                 </div>
+
+                <div class="game-over" id="computing-indicator" style="background: #667eea; display: none;">
+                    🧠 Računam optimalno pot... <br>
+                    <small>Lahko traja nekaj sekund</small>
+                </div>
             </div>
         </div>
     </div>
@@ -328,6 +333,11 @@
         let gameInterval = null;
         let lastMoveSquare = null;
 
+        // Optimal path computation (for smart algorithm)
+        let optimalPath = [];
+        let currentPathIndex = 0;
+        let isComputingPath = false;
+
         // Chess pieces (Unicode)
         const pieces = {
             'K': '♔', 'Q': '♕', 'R': '♖', 'B': '♗', 'N': '♘', 'P': '♙',
@@ -339,6 +349,92 @@
             [-2, -1], [-2, 1], [-1, -2], [-1, 2],
             [1, -2], [1, 2], [2, -1], [2, 1]
         ];
+
+        // Compute optimal path using backtracking
+        function computeOptimalPath() {
+            isComputingPath = true;
+            optimalPath = [];
+            currentPathIndex = 0;
+
+            // Show computing indicator
+            const indicator = document.getElementById('computing-indicator');
+            if (indicator) indicator.classList.add('show');
+
+            // Create a copy of the board for simulation
+            const boardCopy = board.map(row => [...row]);
+            const startPos = { ...knightPos };
+
+            let bestPath = [];
+            let bestScore = 0;
+            let iterations = 0;
+            const MAX_ITERATIONS = 1000000; // Prevent infinite loops
+
+            // Backtracking function
+            function backtrack(pos, path, tempBoard, captured) {
+                iterations++;
+
+                // Prevent browser freeze
+                if (iterations > MAX_ITERATIONS) {
+                    return;
+                }
+
+                // Update best path if this is better
+                if (captured > bestScore) {
+                    bestScore = captured;
+                    bestPath = [...path];
+
+                    // Early termination if we found perfect solution
+                    if (captured === 31) {
+                        return;
+                    }
+                }
+
+                // Get possible capture moves
+                const validMoves = [];
+                for (const [dr, dc] of knightMoves) {
+                    const newRow = pos.row + dr;
+                    const newCol = pos.col + dc;
+                    if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
+                        if (tempBoard[newRow][newCol] !== null) {
+                            validMoves.push({ row: newRow, col: newCol });
+                        }
+                    }
+                }
+
+                // If no more captures possible, return
+                if (validMoves.length === 0) {
+                    return;
+                }
+
+                // Try each possible move
+                for (const move of validMoves) {
+                    // Save the piece at destination
+                    const savedPiece = tempBoard[move.row][move.col];
+
+                    // Make the move
+                    tempBoard[move.row][move.col] = 'KNIGHT';
+                    path.push(move);
+
+                    // Recurse
+                    backtrack(move, path, tempBoard, captured + 1);
+
+                    // Undo the move
+                    tempBoard[move.row][move.col] = savedPiece;
+                    path.pop();
+                }
+            }
+
+            // Start backtracking from initial position
+            backtrack(startPos, [], boardCopy, 0);
+
+            optimalPath = bestPath;
+            isComputingPath = false;
+
+            // Hide computing indicator
+            if (indicator) indicator.classList.remove('show');
+
+            console.log(`Optimal path computed: ${bestPath.length} captures`);
+        }
 
         // Initialize board with classical chess setup (compressed to 4 rows at bottom)
         function initializeBoard() {
@@ -374,6 +470,13 @@
 
             updateStats();
             renderBoard();
+
+            // Compute optimal path for smart algorithm (async to avoid blocking UI)
+            if (currentAlgorithm === 'smart') {
+                setTimeout(() => {
+                    computeOptimalPath();
+                }, 100);
+            }
         }
 
         // Render the chessboard
@@ -458,36 +561,30 @@
             return captureMoves[Math.floor(Math.random() * captureMoves.length)];
         }
 
-        // Smart algorithm (Warnsdorff's algorithm - only capture moves)
+        // Smart algorithm (uses precomputed optimal path via backtracking)
         function selectMoveSmart() {
+            // If path is being computed, wait
+            if (isComputingPath) {
+                return null;
+            }
+
+            // If we have a precomputed path, follow it
+            if (optimalPath.length > 0 && currentPathIndex < optimalPath.length) {
+                const nextMove = optimalPath[currentPathIndex];
+                currentPathIndex++;
+                return nextMove;
+            }
+
+            // Fallback: if no path available, use greedy approach
             const validMoves = getValidMoves(knightPos.row, knightPos.col);
             if (validMoves.length === 0) return null;
 
-            // Only allow capture moves
             const captureMoves = validMoves.filter(move =>
                 board[move.row][move.col] !== null
             );
 
             if (captureMoves.length === 0) return null;
-
-            // Among capture moves, choose the one with most onward capture opportunities
-            let bestMove = captureMoves[0];
-            let maxOnwardCaptures = -1;
-
-            for (const move of captureMoves) {
-                // Count how many captures are possible from this position
-                const onwardMoves = getValidMoves(move.row, move.col);
-                const onwardCaptures = onwardMoves.filter(m =>
-                    board[m.row][m.col] !== null
-                ).length;
-
-                if (onwardCaptures > maxOnwardCaptures) {
-                    maxOnwardCaptures = onwardCaptures;
-                    bestMove = move;
-                }
-            }
-
-            return bestMove;
+            return captureMoves[Math.floor(Math.random() * captureMoves.length)];
         }
 
         // Select move based on current algorithm
@@ -608,6 +705,13 @@
                 btn.classList.remove('active');
             });
             document.getElementById(`algo-${algo}`).classList.add('active');
+
+            // If smart algorithm is selected and path not computed, compute it
+            if (algo === 'smart' && optimalPath.length === 0 && !isComputingPath) {
+                setTimeout(() => {
+                    computeOptimalPath();
+                }, 100);
+            }
         }
 
         // Speed controls
