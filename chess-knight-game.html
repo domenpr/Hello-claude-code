@@ -312,6 +312,9 @@
 
                 <div class="game-over" id="computing-indicator" style="background: #667eea; display: none;">
                     🧠 Računam optimalno pot... <br>
+                    <div style="font-size: 32px; font-weight: bold; margin-top: 10px;">
+                        <span id="progress-percent">0</span>%
+                    </div>
                     <small>Lahko traja nekaj sekund</small>
                 </div>
             </div>
@@ -350,7 +353,7 @@
             [1, -2], [1, 2], [2, -1], [2, 1]
         ];
 
-        // Compute optimal path using backtracking
+        // Compute optimal path using backtracking with progress tracking
         function computeOptimalPath() {
             isComputingPath = true;
             optimalPath = [];
@@ -358,7 +361,9 @@
 
             // Show computing indicator
             const indicator = document.getElementById('computing-indicator');
+            const progressEl = document.getElementById('progress-percent');
             if (indicator) indicator.classList.add('show');
+            if (progressEl) progressEl.textContent = '0';
 
             // Create a copy of the board for simulation
             const boardCopy = board.map(row => [...row]);
@@ -366,26 +371,50 @@
 
             let bestPath = [];
             let bestScore = 0;
-            let iterations = 0;
-            const MAX_ITERATIONS = 1000000; // Prevent infinite loops
+            let totalIterations = 0;
+            let progressIterations = 0;
+            const MAX_TIME = 10000; // 10 seconds max
+            const startTime = Date.now();
+            const ESTIMATED_MAX_ITERATIONS = 500000; // Estimate for progress
 
-            // Backtracking function
-            function backtrack(pos, path, tempBoard, captured) {
-                iterations++;
+            // Update progress display
+            function updateProgress() {
+                if (progressEl) {
+                    const percent = Math.min(99, Math.floor((progressIterations / ESTIMATED_MAX_ITERATIONS) * 100));
+                    progressEl.textContent = percent;
+                }
+            }
 
-                // Prevent browser freeze
-                if (iterations > MAX_ITERATIONS) {
-                    return;
+            // Backtracking function with depth limit and pruning
+            function backtrack(pos, path, tempBoard, captured, depth) {
+                totalIterations++;
+                progressIterations++;
+
+                // Update progress every 1000 iterations
+                if (progressIterations % 1000 === 0) {
+                    updateProgress();
+                }
+
+                // Time limit check
+                if (Date.now() - startTime > MAX_TIME) {
+                    return true; // Signal timeout
+                }
+
+                // Depth limit for performance (adaptive based on current best)
+                const maxDepth = Math.max(31, bestScore + 10);
+                if (depth > maxDepth) {
+                    return false;
                 }
 
                 // Update best path if this is better
                 if (captured > bestScore) {
                     bestScore = captured;
                     bestPath = [...path];
+                    console.log(`New best: ${bestScore} captures`);
 
-                    // Early termination if we found perfect solution
+                    // Perfect solution found!
                     if (captured === 31) {
-                        return;
+                        return true; // Signal completion
                     }
                 }
 
@@ -403,8 +432,21 @@
 
                 // If no more captures possible, return
                 if (validMoves.length === 0) {
-                    return;
+                    return false;
                 }
+
+                // Sort moves by number of onward captures (greedy heuristic)
+                validMoves.sort((a, b) => {
+                    const aCaptures = knightMoves.filter(([dr, dc]) => {
+                        const r = a.row + dr, c = a.col + dc;
+                        return r >= 0 && r < 8 && c >= 0 && c < 8 && tempBoard[r][c] !== null;
+                    }).length;
+                    const bCaptures = knightMoves.filter(([dr, dc]) => {
+                        const r = b.row + dr, c = b.col + dc;
+                        return r >= 0 && r < 8 && c >= 0 && c < 8 && tempBoard[r][c] !== null;
+                    }).length;
+                    return bCaptures - aCaptures; // Try moves with more captures first
+                });
 
                 // Try each possible move
                 for (const move of validMoves) {
@@ -416,24 +458,37 @@
                     path.push(move);
 
                     // Recurse
-                    backtrack(move, path, tempBoard, captured + 1);
+                    const result = backtrack(move, path, tempBoard, captured + 1, depth + 1);
 
                     // Undo the move
                     tempBoard[move.row][move.col] = savedPiece;
                     path.pop();
+
+                    // Early exit if timeout or perfect solution found
+                    if (result === true) {
+                        return true;
+                    }
                 }
+
+                return false;
             }
 
-            // Start backtracking from initial position
-            backtrack(startPos, [], boardCopy, 0);
+            // Start backtracking from initial position (async to avoid UI freeze)
+            setTimeout(() => {
+                backtrack(startPos, [], boardCopy, 0, 0);
 
-            optimalPath = bestPath;
-            isComputingPath = false;
+                optimalPath = bestPath;
+                isComputingPath = false;
 
-            // Hide computing indicator
-            if (indicator) indicator.classList.remove('show');
+                // Show 100% before hiding
+                if (progressEl) progressEl.textContent = '100';
 
-            console.log(`Optimal path computed: ${bestPath.length} captures`);
+                setTimeout(() => {
+                    if (indicator) indicator.classList.remove('show');
+                }, 500);
+
+                console.log(`✅ Optimal path computed: ${bestPath.length} captures (${totalIterations} iterations)`);
+            }, 50);
         }
 
         // Initialize board with classical chess setup (compressed to 4 rows at bottom)
