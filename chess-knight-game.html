@@ -309,6 +309,17 @@
                 </div>
 
                 <div class="control-section">
+                    <h3>Enostavne poti (za otroke)</h3>
+                    <div class="button-group">
+                        <button class="btn-algorithm" id="path-p1" onclick="selectAlgorithm('p1')">P1</button>
+                        <button class="btn-algorithm" id="path-p2" onclick="selectAlgorithm('p2')">P2</button>
+                        <button class="btn-algorithm" id="path-p3" onclick="selectAlgorithm('p3')">P3</button>
+                        <button class="btn-algorithm" id="path-p4" onclick="selectAlgorithm('p4')">P4</button>
+                        <button class="btn-algorithm" id="path-p5" onclick="selectAlgorithm('p5')">P5</button>
+                    </div>
+                </div>
+
+                <div class="control-section">
                     <h3>Nadzor igre</h3>
                     <div class="button-group">
                         <button class="btn-success" onclick="startGame()">Start</button>
@@ -406,6 +417,17 @@
             {row: 5, col: 0},
             {row: 7, col: 1}
         ];
+
+        // 5 enostavnih poti za otroke (compute offline)
+        const SIMPLE_PATH_P1 = [{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 4, col: 5},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 1},{row: 6, col: 0},{row: 7, col: 2},{row: 6, col: 4},{row: 7, col: 6},{row: 5, col: 7},{row: 6, col: 5},{row: 7, col: 7},{row: 5, col: 6},{row: 4, col: 4},{row: 5, col: 2},{row: 7, col: 1},{row: 5, col: 0},{row: 4, col: 2},{row: 6, col: 3},{row: 7, col: 5},{row: 6, col: 7},{row: 4, col: 6},{row: 5, col: 4},{row: 7, col: 3},{row: 6, col: 1},{row: 4, col: 0}];
+
+        const SIMPLE_PATH_P2 = [{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 4, col: 5},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 1},{row: 6, col: 0},{row: 7, col: 2},{row: 6, col: 4},{row: 7, col: 6},{row: 5, col: 7},{row: 6, col: 5},{row: 4, col: 4},{row: 6, col: 3},{row: 4, col: 2},{row: 5, col: 0},{row: 7, col: 1},{row: 5, col: 2},{row: 4, col: 0},{row: 6, col: 1},{row: 7, col: 3},{row: 5, col: 4},{row: 4, col: 6},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 6},{row: 7, col: 7}];
+
+        const SIMPLE_PATH_P3 = [{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 4, col: 5},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 1},{row: 6, col: 0},{row: 7, col: 2},{row: 6, col: 4},{row: 7, col: 6},{row: 5, col: 7},{row: 6, col: 5},{row: 4, col: 4},{row: 6, col: 3},{row: 7, col: 1},{row: 5, col: 0},{row: 4, col: 2},{row: 6, col: 1},{row: 4, col: 0},{row: 5, col: 2},{row: 7, col: 3},{row: 5, col: 4},{row: 4, col: 6},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 6},{row: 7, col: 7}];
+
+        const SIMPLE_PATH_P4 = [{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 4, col: 5},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 1},{row: 6, col: 0},{row: 7, col: 2},{row: 6, col: 4},{row: 7, col: 6},{row: 5, col: 7},{row: 6, col: 5},{row: 4, col: 6},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 4},{row: 7, col: 3},{row: 5, col: 2},{row: 4, col: 0},{row: 6, col: 1},{row: 4, col: 2},{row: 5, col: 0},{row: 7, col: 1},{row: 6, col: 3},{row: 4, col: 4},{row: 5, col: 6},{row: 7, col: 7}];
+
+        const SIMPLE_PATH_P5 = [{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 4, col: 5},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 1},{row: 6, col: 0},{row: 7, col: 2},{row: 6, col: 4},{row: 7, col: 6},{row: 5, col: 7},{row: 6, col: 5},{row: 4, col: 6},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 4},{row: 7, col: 3},{row: 6, col: 1},{row: 4, col: 0},{row: 5, col: 2},{row: 7, col: 1},{row: 5, col: 0},{row: 4, col: 2},{row: 6, col: 3},{row: 4, col: 4},{row: 5, col: 6},{row: 7, col: 7}];
 
         let currentPathIndex = 0;
 
@@ -563,9 +585,34 @@
 
         // Perfect algorithm (uses hardcoded optimal path - 31 captures guaranteed!)
         function selectMovePerfect() {
-            // Follow precomputed optimal path
-            if (currentPathIndex < OPTIMAL_PATH.length) {
-                const nextMove = OPTIMAL_PATH[currentPathIndex];
+            // Select correct path based on algorithm
+            let selectedPath;
+            switch (currentAlgorithm) {
+                case 'perfect':
+                    selectedPath = OPTIMAL_PATH;
+                    break;
+                case 'p1':
+                    selectedPath = SIMPLE_PATH_P1;
+                    break;
+                case 'p2':
+                    selectedPath = SIMPLE_PATH_P2;
+                    break;
+                case 'p3':
+                    selectedPath = SIMPLE_PATH_P3;
+                    break;
+                case 'p4':
+                    selectedPath = SIMPLE_PATH_P4;
+                    break;
+                case 'p5':
+                    selectedPath = SIMPLE_PATH_P5;
+                    break;
+                default:
+                    selectedPath = OPTIMAL_PATH;
+            }
+
+            // Follow precomputed path
+            if (currentPathIndex < selectedPath.length) {
+                const nextMove = selectedPath[currentPathIndex];
                 currentPathIndex++;
                 return nextMove;
             }
@@ -582,6 +629,11 @@
                 case 'smart':
                     return selectMoveSmart();
                 case 'perfect':
+                case 'p1':
+                case 'p2':
+                case 'p3':
+                case 'p4':
+                case 'p5':
                     return selectMovePerfect();
                 default:
                     return selectMoveSmart();
@@ -691,10 +743,18 @@
             document.querySelectorAll('.btn-algorithm').forEach(btn => {
                 btn.classList.remove('active');
             });
-            document.getElementById(`algo-${algo}`).classList.add('active');
 
-            // Reset path index when selecting perfect algorithm
-            if (algo === 'perfect') {
+            // Determine correct button ID
+            let buttonId;
+            if (['p1', 'p2', 'p3', 'p4', 'p5'].includes(algo)) {
+                buttonId = `path-${algo}`;
+            } else {
+                buttonId = `algo-${algo}`;
+            }
+            document.getElementById(buttonId).classList.add('active');
+
+            // Reset path index when selecting any perfect/precomputed algorithm
+            if (['perfect', 'p1', 'p2', 'p3', 'p4', 'p5'].includes(algo)) {
                 currentPathIndex = 0;
             }
         }
