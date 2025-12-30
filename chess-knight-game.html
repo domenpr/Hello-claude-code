@@ -376,25 +376,29 @@
             let bestScore = 0;
             let totalIterations = 0;
             let progressIterations = 0;
-            const MAX_TIME = 10000; // 10 seconds max
+            const MAX_TIME = 30000; // 30 seconds max
             const startTime = Date.now();
-            const ESTIMATED_MAX_ITERATIONS = 500000; // Estimate for progress
+            let lastProgressUpdate = Date.now();
 
-            // Update progress display
-            function updateProgress() {
-                if (progressEl) {
-                    const percent = Math.min(99, Math.floor((progressIterations / ESTIMATED_MAX_ITERATIONS) * 100));
-                    progressEl.textContent = percent;
+            // Update progress display (smooth updates every 500ms)
+            function updateProgress(force = false) {
+                const now = Date.now();
+                if (force || now - lastProgressUpdate > 500) {
+                    if (progressEl) {
+                        const elapsed = now - startTime;
+                        const percent = Math.min(99, Math.floor((elapsed / MAX_TIME) * 100));
+                        progressEl.textContent = percent;
+                    }
+                    lastProgressUpdate = now;
                 }
             }
 
-            // Backtracking function with depth limit and pruning
-            function backtrack(pos, path, tempBoard, captured, depth) {
+            // Backtracking function with Warnsdorff's pruning
+            function backtrack(pos, path, tempBoard, captured) {
                 totalIterations++;
-                progressIterations++;
 
-                // Update progress every 1000 iterations
-                if (progressIterations % 1000 === 0) {
+                // Update progress periodically
+                if (totalIterations % 1000 === 0) {
                     updateProgress();
                 }
 
@@ -403,20 +407,16 @@
                     return true; // Signal timeout
                 }
 
-                // Depth limit for performance (adaptive based on current best)
-                const maxDepth = Math.max(31, bestScore + 10);
-                if (depth > maxDepth) {
-                    return false;
-                }
-
                 // Update best path if this is better
                 if (captured > bestScore) {
                     bestScore = captured;
                     bestPath = [...path];
-                    console.log(`New best: ${bestScore} captures`);
+                    console.log(`🎯 New best: ${bestScore} captures (${totalIterations.toLocaleString()} iterations)`);
+                    updateProgress(true);
 
                     // Perfect solution found!
                     if (captured === 31) {
+                        console.log('🏆 PERFECT SOLUTION FOUND!');
                         return true; // Signal completion
                     }
                 }
@@ -438,7 +438,7 @@
                     return false;
                 }
 
-                // Sort moves by number of onward captures (greedy heuristic)
+                // Sort moves by Warnsdorff's heuristic (fewest onward captures first)
                 validMoves.sort((a, b) => {
                     const aCaptures = knightMoves.filter(([dr, dc]) => {
                         const r = a.row + dr, c = a.col + dc;
@@ -448,7 +448,7 @@
                         const r = b.row + dr, c = b.col + dc;
                         return r >= 0 && r < 8 && c >= 0 && c < 8 && tempBoard[r][c] !== null;
                     }).length;
-                    return bCaptures - aCaptures; // Try moves with more captures first
+                    return aCaptures - bCaptures; // Try moves with FEWER captures first (Warnsdorff's)
                 });
 
                 // Try each possible move
@@ -461,7 +461,7 @@
                     path.push(move);
 
                     // Recurse
-                    const result = backtrack(move, path, tempBoard, captured + 1, depth + 1);
+                    const result = backtrack(move, path, tempBoard, captured + 1);
 
                     // Undo the move
                     tempBoard[move.row][move.col] = savedPiece;
@@ -478,7 +478,8 @@
 
             // Start backtracking from initial position (async to avoid UI freeze)
             setTimeout(() => {
-                backtrack(startPos, [], boardCopy, 0, 0);
+                console.log('🚀 Starting backtracking optimization...');
+                backtrack(startPos, [], boardCopy, 0);
 
                 optimalPath = bestPath;
                 isComputingPath = false;
@@ -488,9 +489,10 @@
 
                 setTimeout(() => {
                     if (indicator) indicator.classList.remove('show');
-                }, 500);
+                }, 800);
 
-                console.log(`✅ Optimal path computed: ${bestPath.length} captures (${totalIterations} iterations)`);
+                console.log(`✅ Optimization complete: ${bestPath.length} captures found in ${totalIterations.toLocaleString()} iterations`);
+                console.log(`📊 Result: ${31 - bestPath.length} pieces remaining`);
             }, 50);
         }
 
