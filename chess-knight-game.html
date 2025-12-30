@@ -24,9 +24,10 @@
         .container {
             background: white;
             border-radius: 20px;
-            padding: 30px;
+            padding: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             max-width: 900px;
+            width: 100%;
         }
 
         h1 {
@@ -45,6 +46,7 @@
 
         .board-container {
             flex: 0 0 auto;
+            margin: 0 auto;
         }
 
         .chessboard {
@@ -237,6 +239,30 @@
 
         .game-over.show {
             display: block;
+        }
+
+        /* Mobile optimization */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 15px;
+            }
+
+            .game-layout {
+                gap: 20px;
+            }
+
+            .chessboard {
+                margin: 0 auto;
+            }
+
+            .controls {
+                width: 100%;
+                max-width: 100%;
+            }
         }
     </style>
 </head>
