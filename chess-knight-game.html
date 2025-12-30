@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Šahovska igra s konjem</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+
+        .game-area {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .board-container {
+            position: relative;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 60px);
+            grid-template-rows: repeat(8, 60px);
+            border: 3px solid #333;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .square {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px;
+            cursor: default;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .square.light {
+            background-color: #f0d9b5;
+        }
+
+        .square.dark {
+            background-color: #b58863;
+        }
+
+        .square.knight {
+            background-color: #7fa650;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .square.target {
+            background-color: #f7e394;
+        }
+
+        .square.captured {
+            background-color: #e8e8e8;
+            opacity: 0.5;
+        }
+
+        .square.valid-move {
+            cursor: pointer;
+            box-shadow: inset 0 0 0 3px #4CAF50;
+            animation: pulse 1s infinite;
+        }
+
+        .square.valid-move:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: inset 0 0 0 3px #4CAF50; }
+            50% { box-shadow: inset 0 0 0 5px #66BB6A; }
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 280px;
+        }
+
+        .control-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .control-section h3 {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-algorithm {
+            flex: 1;
+            min-width: 70px;
+            padding: 8px 12px;
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            font-size: 12px;
+        }
+
+        .btn-algorithm:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-algorithm.active {
+            background: #667eea;
+            color: white;
+            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.4);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            display: block;
+        }
+
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .board {
+                grid-template-columns: repeat(8, 45px);
+                grid-template-rows: repeat(8, 45px);
+            }
+
+            .square {
+                width: 45px;
+                height: 45px;
+                font-size: 24px;
+            }
+
+            .game-area {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>♞ Šahovska igra s konjem ♞</h1>
+        <p class="subtitle">Konj mora ujeti vse figure (31 figur) brez preostalih</p>
+
+        <div class="game-area">
+            <div class="board-container">
+                <div id="board" class="board"></div>
+            </div>
+
+            <div class="controls">
+                <div class="control-section">
+                    <h3>Nadzor igre</h3>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <button class="btn btn-primary" onclick="startGame()">Začni igro</button>
+                        <button class="btn btn-secondary" onclick="nextMove()">Naslednja poteza</button>
+                        <button class="btn btn-secondary" onclick="resetGame()">Resetiraj</button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Osnovni algoritmi</h3>
+                    <div class="button-group">
+                        <button class="btn-algorithm" id="algo-random" onclick="selectAlgorithm('random')">Naključno</button>
+                        <button class="btn-algorithm active" id="algo-smart" onclick="selectAlgorithm('smart')">Pameten</button>
+                        <button class="btn-algorithm" id="algo-perfect" onclick="selectAlgorithm('perfect')">Popolno</button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Interaktivno</h3>
+                    <button class="btn-algorithm" id="algo-interactive" onclick="selectAlgorithm('interactive')" style="width: 100%;">🎮 Igra (klikaj polja)</button>
+                    <div id="interactive-hint" style="font-size: 11px; color: #666; margin-top: 8px; display: none;">
+                        Klikni na zeleno označeno polje kamor lahko skoči konj
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Enostavne poti (za otroke)</h3>
+                    <div class="button-group">
+                        <button class="btn-algorithm" id="path-p1" onclick="selectAlgorithm('p1')">P1</button>
+                        <button class="btn-algorithm" id="path-p2" onclick="selectAlgorithm('p2')">P2</button>
+                        <button class="btn-algorithm" id="path-p3" onclick="selectAlgorithm('p3')">P3</button>
+                        <button class="btn-algorithm" id="path-p4" onclick="selectAlgorithm('p4')">P4</button>
+                        <button class="btn-algorithm" id="path-p5" onclick="selectAlgorithm('p5')">P5</button>
+                        <button class="btn-algorithm" id="path-p6" onclick="selectAlgorithm('p6')">P6</button>
+                    </div>
+                    <div style="font-size: 11px; color: #666; margin-top: 5px;">
+                        P6: Fokus na levo stran (10 korakov zapored levo) ✓
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Statistika</h3>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <div class="stat-label">Poteze</div>
+                            <div class="stat-value" id="moves">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Ujete</div>
+                            <div class="stat-value" id="captured">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Preostale</div>
+                            <div class="stat-value" id="remaining">31</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Algoritem</div>
+                            <div class="stat-value" id="current-algo" style="font-size: 14px;">Pameten</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="message" class="message"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        let board = [];
+        let knightPos = {row: 0, col: 0};
+        let targetPieces = [];
+        let capturedCount = 0;
+        let moveCount = 0;
+        let currentAlgorithm = 'smart';
+        let currentPathIndex = 0;
+        let gameStarted = false;
+
+        // Knight move offsets
+        const KNIGHT_MOVES = [
+            [-2, -1], [-2, 1], [-1, -2], [-1, 2],
+            [1, -2], [1, 2], [2, -1], [2, 1]
+        ];
+
+        // Optimal path (31 captures, 0 remaining)
+        const OPTIMAL_PATH = [{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 4, col: 5},{row: 5, col: 7},{row: 7, col: 6},{row: 6, col: 4},{row: 7, col: 2},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 1},{row: 6, col: 0},{row: 5, col: 2},{row: 4, col: 0},{row: 6, col: 1},{row: 4, col: 2},{row: 5, col: 0},{row: 7, col: 1},{row: 6, col: 3},{row: 4, col: 4},{row: 5, col: 6},{row: 7, col: 7},{row: 6, col: 5},{row: 4, col: 6},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 4},{row: 7, col: 3}];
+
+        // Simple paths P1-P5 (systematic approaches)
+        const SIMPLE_PATH_P1 = [{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 7, col: 4},{row: 6, col: 2},{row: 7, col: 0},{row: 5, col: 1},{row: 4, col: 3},{row: 6, col: 4},{row: 7, col: 6},{row: 5, col: 7},{row: 4, col: 5},{row: 6, col: 6},{row: 7, col: 4},{row: 5, col: 3},{row: 4, col: 1},{row: 6, col: 0},{row: 7, col: 2},{row: 5, col: 3},{row: 4, col: 5},{row: 6, col: 4},{row: 4, col: 3},{row: 5, col: 1},{row: 7, col: 2},{row: 6, col: 0},{row: 4, col: 1},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 2}];
+
+        const SIMPLE_PATH_P2 = [{row: 4, col: 1},{row: 5, col: 3},{row: 4, col: 5},{row: 5, col: 7},{row: 7, col: 6},{row: 6, col: 4},{row: 7, col: 2},{row: 6, col: 0},{row: 4, col: 1},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 6},{row: 4, col: 7},{row: 5, col: 5},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 4},{row: 4, col: 2},{row: 6, col: 1},{row: 7, col: 3},{row: 5, col: 2},{row: 4, col: 4},{row: 6, col: 3},{row: 4, col: 2},{row: 5, col: 0},{row: 7, col: 1},{row: 6, col: 3},{row: 4, col: 4},{row: 5, col: 6},{row: 7, col: 7},{row: 6, col: 5}];
+
+        const SIMPLE_PATH_P3 = [{row: 6, col: 0},{row: 4, col: 1},{row: 5, col: 3},{row: 4, col: 5},{row: 6, col: 6},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 3},{row: 5, col: 5},{row: 7, col: 6},{row: 6, col: 4},{row: 4, col: 5},{row: 5, col: 7},{row: 7, col: 6},{row: 6, col: 4},{row: 7, col: 2},{row: 5, col: 1},{row: 4, col: 3},{row: 6, col: 2},{row: 7, col: 0},{row: 5, col: 1},{row: 4, col: 3},{row: 6, col: 4},{row: 7, col: 6},{row: 5, col: 7},{row: 4, col: 5},{row: 6, col: 6},{row: 7, col: 4},{row: 5, col: 3},{row: 4, col: 1},{row: 6, col: 0}];
+
+        const SIMPLE_PATH_P4 = [{row: 5, col: 0},{row: 4, col: 2},{row: 5, col: 4},{row: 4, col: 6},{row: 6, col: 7},{row: 7, col: 5},{row: 6, col: 3},{row: 7, col: 1},{row: 5, col: 0},{row: 4, col: 2},{row: 6, col: 3},{row: 7, col: 5},{row: 5, col: 6},{row: 4, col: 4},{row: 6, col: 5},{row: 7, col: 7},{row: 5, col: 6},{row: 4, col: 4},{row: 6, col: 3},{row: 7, col: 1},{row: 5, col: 2},{row: 4, col: 0},{row: 6, col: 1},{row: 7, col: 3},{row: 5, col: 4},{row: 4, col: 6},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 6},{row: 6, col: 4},{row: 7, col: 2}];
+
+        const SIMPLE_PATH_P5 = [{row: 7, col: 0},{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 1},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 6},{row: 4, col: 7},{row: 5, col: 5},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 4},{row: 4, col: 2},{row: 6, col: 1},{row: 7, col: 3},{row: 5, col: 2},{row: 4, col: 4},{row: 6, col: 3},{row: 4, col: 2},{row: 5, col: 0},{row: 7, col: 1},{row: 6, col: 3},{row: 4, col: 4},{row: 5, col: 6},{row: 7, col: 7},{row: 6, col: 5}];
+
+        // P6: Fokus na levo stran (10 korakov zapored levo)
+        const SIMPLE_PATH_P6 = [{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 4, col: 5},{row: 5, col: 7},{row: 7, col: 6},{row: 6, col: 4},{row: 7, col: 2},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 1},{row: 6, col: 0},{row: 5, col: 2},{row: 4, col: 0},{row: 6, col: 1},{row: 4, col: 2},{row: 5, col: 0},{row: 7, col: 1},{row: 6, col: 3},{row: 4, col: 4},{row: 5, col: 6},{row: 7, col: 7},{row: 6, col: 5},{row: 4, col: 6},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 4},{row: 7, col: 3}];
+
+        // Initialize the game
+        function initGame() {
+            // Create empty board
+            board = Array(8).fill(null).map(() => Array(8).fill(0));
+
+            // Place knight at a1 (bottom-left corner = row 0, col 0)
+            knightPos = {row: 0, col: 0};
+            board[0][0] = 2; // 2 = knight
+
+            // Place target pieces in rows 4-7 (top half of board)
+            targetPieces = [];
+            for (let row = 4; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    board[row][col] = 1; // 1 = target piece
+                    targetPieces.push({row, col});
+                }
+            }
+
+            capturedCount = 0;
+            moveCount = 0;
+            currentPathIndex = 0;
+            gameStarted = false;
+
+            renderBoard();
+            updateStats();
+        }
+
+        // Render the board
+        function renderBoard() {
+            const boardElement = document.getElementById('board');
+            boardElement.innerHTML = '';
+
+            for (let row = 7; row >= 0; row--) {
+                for (let col = 0; col < 8; col++) {
+                    const square = document.createElement('div');
+                    square.className = 'square';
+                    square.dataset.row = row;
+                    square.dataset.col = col;
+
+                    // Checkerboard pattern
+                    if ((row + col) % 2 === 0) {
+                        square.classList.add('light');
+                    } else {
+                        square.classList.add('dark');
+                    }
+
+                    // Cell content
+                    if (board[row][col] === 2) {
+                        square.textContent = '♞';
+                        square.classList.add('knight');
+                    } else if (board[row][col] === 1) {
+                        square.textContent = '♟';
+                        square.classList.add('target');
+                    } else if (board[row][col] === 3) {
+                        square.textContent = '';
+                        square.classList.add('captured');
+                    }
+
+                    boardElement.appendChild(square);
+                }
+            }
+
+            // If interactive mode, highlight valid moves
+            if (currentAlgorithm === 'interactive' && gameStarted) {
+                highlightValidMoves();
+            }
+        }
+
+        // Highlight valid moves in interactive mode
+        function highlightValidMoves() {
+            const validMoves = getValidMoves(knightPos);
+            validMoves.forEach(move => {
+                const square = document.querySelector(`[data-row="${move.row}"][data-col="${move.col}"]`);
+                if (square) {
+                    square.classList.add('valid-move');
+                    square.onclick = () => makeInteractiveMove(move);
+                }
+            });
+        }
+
+        // Get valid moves for knight
+        function getValidMoves(pos) {
+            const moves = [];
+            for (const [dr, dc] of KNIGHT_MOVES) {
+                const newRow = pos.row + dr;
+                const newCol = pos.col + dc;
+
+                if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
+                    if (board[newRow][newCol] === 1) { // Can only move to target pieces
+                        moves.push({row: newRow, col: newCol});
+                    }
+                }
+            }
+            return moves;
+        }
+
+        // Make a move in interactive mode
+        function makeInteractiveMove(move) {
+            if (!gameStarted || currentAlgorithm !== 'interactive') return;
+
+            // Move knight
+            board[knightPos.row][knightPos.col] = 3; // Mark as captured
+            knightPos = move;
+            board[move.row][move.col] = 2; // Place knight
+
+            capturedCount++;
+            moveCount++;
+
+            renderBoard();
+            updateStats();
+            checkGameEnd();
+        }
+
+        // Update statistics display
+        function updateStats() {
+            document.getElementById('moves').textContent = moveCount;
+            document.getElementById('captured').textContent = capturedCount;
+            document.getElementById('remaining').textContent = 31 - capturedCount;
+
+            const algoNames = {
+                'random': 'Naključno',
+                'smart': 'Pameten',
+                'perfect': 'Popolno',
+                'interactive': 'Igra',
+                'p1': 'P1',
+                'p2': 'P2',
+                'p3': 'P3',
+                'p4': 'P4',
+                'p5': 'P5',
+                'p6': 'P6'
+            };
+            document.getElementById('current-algo').textContent = algoNames[currentAlgorithm] || 'Pameten';
+        }
+
+        // Start the game
+        function startGame() {
+            initGame();
+            gameStarted = true;
+            showMessage('Igra začeta! Klikni "Naslednja poteza" ali izberi polje.', 'info');
+
+            // Show interactive hint if in interactive mode
+            if (currentAlgorithm === 'interactive') {
+                document.getElementById('interactive-hint').style.display = 'block';
+                renderBoard(); // Re-render to show valid moves
+            }
+        }
+
+        // Reset game
+        function resetGame() {
+            initGame();
+            gameStarted = false;
+            document.getElementById('interactive-hint').style.display = 'none';
+            showMessage('Igra resetirana. Klikni "Začni igro" za začetek.', 'info');
+        }
+
+        // Select algorithm
+        function selectAlgorithm(algo) {
+            currentAlgorithm = algo;
+            document.querySelectorAll('.btn-algorithm').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            let buttonId;
+            if (['p1', 'p2', 'p3', 'p4', 'p5', 'p6'].includes(algo)) {
+                buttonId = `path-${algo}`;
+            } else if (algo === 'interactive') {
+                buttonId = `algo-interactive`;
+            } else {
+                buttonId = `algo-${algo}`;
+            }
+            document.getElementById(buttonId).classList.add('active');
+
+            if (['perfect', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6'].includes(algo)) {
+                currentPathIndex = 0;
+            }
+
+            // Show/hide interactive hint
+            if (algo === 'interactive') {
+                if (gameStarted) {
+                    document.getElementById('interactive-hint').style.display = 'block';
+                    renderBoard(); // Re-render to show valid moves
+                }
+            } else {
+                document.getElementById('interactive-hint').style.display = 'none';
+            }
+
+            updateStats();
+        }
+
+        // Execute next move
+        function nextMove() {
+            if (!gameStarted) {
+                showMessage('Najprej začni igro!', 'info');
+                return;
+            }
+
+            if (currentAlgorithm === 'interactive') {
+                showMessage('V interaktivnem načinu klikni na zeleno polje!', 'info');
+                return;
+            }
+
+            const move = selectMove();
+            if (!move) {
+                const remaining = 31 - capturedCount;
+                if (remaining === 0) {
+                    showMessage(`Čestitke! Vse figure ujete v ${moveCount} potezah! 🎉`, 'success');
+                } else {
+                    showMessage(`Igra končana. Ujeto: ${capturedCount}, Preostalo: ${remaining}`, 'info');
+                }
+                gameStarted = false;
+                return;
+            }
+
+            // Execute the move
+            board[knightPos.row][knightPos.col] = 3; // Mark current position as captured
+            knightPos = move;
+            board[move.row][move.col] = 2; // Place knight at new position
+
+            capturedCount++;
+            moveCount++;
+
+            renderBoard();
+            updateStats();
+            checkGameEnd();
+        }
+
+        // Select move based on current algorithm
+        function selectMove() {
+            switch (currentAlgorithm) {
+                case 'random':
+                    return selectMoveRandom();
+                case 'smart':
+                    return selectMoveSmart();
+                case 'perfect':
+                case 'p1':
+                case 'p2':
+                case 'p3':
+                case 'p4':
+                case 'p5':
+                case 'p6':
+                    return selectMovePerfect();
+                default:
+                    return selectMoveSmart();
+            }
+        }
+
+        // Random move selection
+        function selectMoveRandom() {
+            const validMoves = getValidMoves(knightPos);
+            if (validMoves.length === 0) return null;
+            return validMoves[Math.floor(Math.random() * validMoves.length)];
+        }
+
+        // Smart move selection (Warnsdorff's algorithm)
+        function selectMoveSmart() {
+            const validMoves = getValidMoves(knightPos);
+            if (validMoves.length === 0) return null;
+
+            // For each valid move, count how many moves would be available from there
+            let bestMove = null;
+            let minAccessibility = Infinity;
+
+            for (const move of validMoves) {
+                const accessibility = getValidMoves(move).length;
+                if (accessibility < minAccessibility) {
+                    minAccessibility = accessibility;
+                    bestMove = move;
+                }
+            }
+
+            return bestMove;
+        }
+
+        // Perfect move selection (pre-computed optimal path)
+        function selectMovePerfect() {
+            let selectedPath;
+            switch (currentAlgorithm) {
+                case 'perfect':
+                    selectedPath = OPTIMAL_PATH;
+                    break;
+                case 'p1':
+                    selectedPath = SIMPLE_PATH_P1;
+                    break;
+                case 'p2':
+                    selectedPath = SIMPLE_PATH_P2;
+                    break;
+                case 'p3':
+                    selectedPath = SIMPLE_PATH_P3;
+                    break;
+                case 'p4':
+                    selectedPath = SIMPLE_PATH_P4;
+                    break;
+                case 'p5':
+                    selectedPath = SIMPLE_PATH_P5;
+                    break;
+                case 'p6':
+                    selectedPath = SIMPLE_PATH_P6;
+                    break;
+                default:
+                    selectedPath = OPTIMAL_PATH;
+            }
+
+            if (currentPathIndex < selectedPath.length) {
+                const nextMove = selectedPath[currentPathIndex];
+                currentPathIndex++;
+                return nextMove;
+            }
+            return null;
+        }
+
+        // Check if game has ended
+        function checkGameEnd() {
+            const validMoves = getValidMoves(knightPos);
+            const remaining = 31 - capturedCount;
+
+            if (remaining === 0) {
+                showMessage(`Čestitke! Vse figure ujete v ${moveCount} potezah! 🎉`, 'success');
+                gameStarted = false;
+                document.getElementById('interactive-hint').style.display = 'none';
+            } else if (validMoves.length === 0) {
+                showMessage(`Igra končana. Ujeto: ${capturedCount}, Preostalo: ${remaining}`, 'info');
+                gameStarted = false;
+                document.getElementById('interactive-hint').style.display = 'none';
+            }
+        }
+
+        // Show message
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+        }
+
+        // Initialize on page load
+        initGame();
+    </script>
+</body>
+</html>
