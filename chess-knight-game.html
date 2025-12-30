@@ -248,20 +248,43 @@
             }
 
             .container {
-                padding: 15px;
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 22px;
+                margin-bottom: 15px;
             }
 
             .game-layout {
-                gap: 20px;
+                gap: 15px;
             }
 
             .chessboard {
+                grid-template-columns: repeat(8, 42px);
+                grid-template-rows: repeat(8, 42px);
                 margin: 0 auto;
+            }
+
+            .square {
+                width: 42px;
+                height: 42px;
+                font-size: 28px;
             }
 
             .controls {
                 width: 100%;
                 max-width: 100%;
+            }
+
+            button {
+                padding: 8px 12px;
+                font-size: 13px;
+                min-width: auto;
+            }
+
+            .stat-value {
+                font-size: 20px;
             }
         }
     </style>
