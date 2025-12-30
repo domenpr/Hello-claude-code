@@ -49,19 +49,19 @@
 
         .chessboard {
             display: grid;
-            grid-template-columns: repeat(8, 60px);
-            grid-template-rows: repeat(8, 60px);
+            grid-template-columns: repeat(8, 51px);
+            grid-template-rows: repeat(8, 51px);
             border: 3px solid #333;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
         .square {
-            width: 60px;
-            height: 60px;
+            width: 51px;
+            height: 51px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 40px;
+            font-size: 34px;
             position: relative;
             transition: background-color 0.3s;
         }
@@ -253,27 +253,18 @@
                 <div class="control-section">
                     <h3>Algoritmi</h3>
                     <div class="button-group">
-                        <button class="btn-algorithm" id="algo-random" onclick="selectAlgorithm('random')">🎲 Naključni</button>
-                    </div>
-                    <div class="button-group">
-                        <button class="btn-algorithm" id="algo-greedy" onclick="selectAlgorithm('greedy')">🎯 Greedy</button>
-                    </div>
-                    <div class="button-group">
-                        <button class="btn-algorithm active" id="algo-smart" onclick="selectAlgorithm('smart')">🧠 Pameten</button>
-                    </div>
-                    <div class="button-group">
-                        <button class="btn-algorithm" id="algo-perfect" onclick="selectAlgorithm('perfect')">🏆 Popolno</button>
+                        <button class="btn-algorithm" id="algo-random" onclick="selectAlgorithm('random')">Naključni</button>
+                        <button class="btn-algorithm active" id="algo-smart" onclick="selectAlgorithm('smart')">Pameten</button>
+                        <button class="btn-algorithm" id="algo-perfect" onclick="selectAlgorithm('perfect')">Popolno</button>
                     </div>
                 </div>
 
                 <div class="control-section">
                     <h3>Nadzor igre</h3>
                     <div class="button-group">
-                        <button class="btn-success" onclick="startGame()">▶ Start</button>
-                        <button class="btn-danger" onclick="stopGame()">⏸ Stop</button>
-                    </div>
-                    <div class="button-group">
-                        <button class="btn-secondary" onclick="resetGame()">🔄 Reset</button>
+                        <button class="btn-success" onclick="startGame()">Start</button>
+                        <button class="btn-danger" onclick="stopGame()">Stop</button>
+                        <button class="btn-secondary" onclick="resetGame()">Reset</button>
                     </div>
                 </div>
 
@@ -488,20 +479,6 @@
             return captureMoves[Math.floor(Math.random() * captureMoves.length)];
         }
 
-        // Greedy algorithm (only capture moves)
-        function selectMoveGreedy() {
-            const validMoves = getValidMoves(knightPos.row, knightPos.col);
-            if (validMoves.length === 0) return null;
-
-            // Only allow capture moves
-            const captureMoves = validMoves.filter(move =>
-                board[move.row][move.col] !== null
-            );
-
-            if (captureMoves.length === 0) return null;
-            return captureMoves[Math.floor(Math.random() * captureMoves.length)];
-        }
-
         // Smart algorithm (Warnsdorff's heuristic - instant, no waiting)
         function selectMoveSmart() {
             const validMoves = getValidMoves(knightPos.row, knightPos.col);
@@ -553,8 +530,6 @@
             switch (currentAlgorithm) {
                 case 'random':
                     return selectMoveRandom();
-                case 'greedy':
-                    return selectMoveGreedy();
                 case 'smart':
                     return selectMoveSmart();
                 case 'perfect':
