@@ -313,13 +313,6 @@
                     <span id="final-stats"></span>
                 </div>
 
-                <div class="game-over" id="computing-indicator" style="background: #667eea; display: none;">
-                    🧠 Računam optimalno pot... <br>
-                    <div style="font-size: 32px; font-weight: bold; margin-top: 10px;">
-                        <span id="progress-percent">0</span>%
-                    </div>
-                    <small>Lahko traja nekaj sekund</small>
-                </div>
             </div>
         </div>
     </div>
@@ -339,10 +332,42 @@
         let gameInterval = null;
         let lastMoveSquare = null;
 
-        // Optimal path computation (for smart algorithm)
-        let optimalPath = [];
+        // Precomputed optimal path (computed offline - 31 captures, 0 remaining!)
+        const OPTIMAL_PATH = [
+            {row: 5, col: 1},
+            {row: 4, col: 3},
+            {row: 6, col: 2},
+            {row: 4, col: 1},
+            {row: 6, col: 0},
+            {row: 7, col: 2},
+            {row: 5, col: 3},
+            {row: 7, col: 4},
+            {row: 6, col: 6},
+            {row: 4, col: 7},
+            {row: 5, col: 5},
+            {row: 7, col: 6},
+            {row: 5, col: 7},
+            {row: 4, col: 5},
+            {row: 6, col: 4},
+            {row: 5, col: 6},
+            {row: 7, col: 7},
+            {row: 6, col: 5},
+            {row: 4, col: 4},
+            {row: 5, col: 2},
+            {row: 4, col: 0},
+            {row: 6, col: 1},
+            {row: 7, col: 3},
+            {row: 5, col: 4},
+            {row: 4, col: 6},
+            {row: 6, col: 7},
+            {row: 7, col: 5},
+            {row: 6, col: 3},
+            {row: 4, col: 2},
+            {row: 5, col: 0},
+            {row: 7, col: 1}
+        ];
+
         let currentPathIndex = 0;
-        let isComputingPath = false;
 
         // Chess pieces (Unicode)
         const pieces = {
@@ -355,146 +380,6 @@
             [-2, -1], [-2, 1], [-1, -2], [-1, 2],
             [1, -2], [1, 2], [2, -1], [2, 1]
         ];
-
-        // Compute optimal path using backtracking with progress tracking
-        function computeOptimalPath() {
-            isComputingPath = true;
-            optimalPath = [];
-            currentPathIndex = 0;
-
-            // Show computing indicator
-            const indicator = document.getElementById('computing-indicator');
-            const progressEl = document.getElementById('progress-percent');
-            if (indicator) indicator.classList.add('show');
-            if (progressEl) progressEl.textContent = '0';
-
-            // Create a copy of the board for simulation
-            const boardCopy = board.map(row => [...row]);
-            const startPos = { ...knightPos };
-
-            let bestPath = [];
-            let bestScore = 0;
-            let totalIterations = 0;
-            let progressIterations = 0;
-            const MAX_TIME = 30000; // 30 seconds max
-            const startTime = Date.now();
-            let lastProgressUpdate = Date.now();
-
-            // Update progress display (smooth updates every 500ms)
-            function updateProgress(force = false) {
-                const now = Date.now();
-                if (force || now - lastProgressUpdate > 500) {
-                    if (progressEl) {
-                        const elapsed = now - startTime;
-                        const percent = Math.min(99, Math.floor((elapsed / MAX_TIME) * 100));
-                        progressEl.textContent = percent;
-                    }
-                    lastProgressUpdate = now;
-                }
-            }
-
-            // Backtracking function with Warnsdorff's pruning
-            function backtrack(pos, path, tempBoard, captured) {
-                totalIterations++;
-
-                // Update progress periodically
-                if (totalIterations % 1000 === 0) {
-                    updateProgress();
-                }
-
-                // Time limit check
-                if (Date.now() - startTime > MAX_TIME) {
-                    return true; // Signal timeout
-                }
-
-                // Update best path if this is better
-                if (captured > bestScore) {
-                    bestScore = captured;
-                    bestPath = [...path];
-                    console.log(`🎯 New best: ${bestScore} captures (${totalIterations.toLocaleString()} iterations)`);
-                    updateProgress(true);
-
-                    // Perfect solution found!
-                    if (captured === 31) {
-                        console.log('🏆 PERFECT SOLUTION FOUND!');
-                        return true; // Signal completion
-                    }
-                }
-
-                // Get possible capture moves
-                const validMoves = [];
-                for (const [dr, dc] of knightMoves) {
-                    const newRow = pos.row + dr;
-                    const newCol = pos.col + dc;
-                    if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
-                        if (tempBoard[newRow][newCol] !== null) {
-                            validMoves.push({ row: newRow, col: newCol });
-                        }
-                    }
-                }
-
-                // If no more captures possible, return
-                if (validMoves.length === 0) {
-                    return false;
-                }
-
-                // Sort moves by Warnsdorff's heuristic (fewest onward captures first)
-                validMoves.sort((a, b) => {
-                    const aCaptures = knightMoves.filter(([dr, dc]) => {
-                        const r = a.row + dr, c = a.col + dc;
-                        return r >= 0 && r < 8 && c >= 0 && c < 8 && tempBoard[r][c] !== null;
-                    }).length;
-                    const bCaptures = knightMoves.filter(([dr, dc]) => {
-                        const r = b.row + dr, c = b.col + dc;
-                        return r >= 0 && r < 8 && c >= 0 && c < 8 && tempBoard[r][c] !== null;
-                    }).length;
-                    return aCaptures - bCaptures; // Try moves with FEWER captures first (Warnsdorff's)
-                });
-
-                // Try each possible move
-                for (const move of validMoves) {
-                    // Save the piece at destination
-                    const savedPiece = tempBoard[move.row][move.col];
-
-                    // Make the move
-                    tempBoard[move.row][move.col] = 'KNIGHT';
-                    path.push(move);
-
-                    // Recurse
-                    const result = backtrack(move, path, tempBoard, captured + 1);
-
-                    // Undo the move
-                    tempBoard[move.row][move.col] = savedPiece;
-                    path.pop();
-
-                    // Early exit if timeout or perfect solution found
-                    if (result === true) {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-
-            // Start backtracking from initial position (async to avoid UI freeze)
-            setTimeout(() => {
-                console.log('🚀 Starting backtracking optimization...');
-                backtrack(startPos, [], boardCopy, 0);
-
-                optimalPath = bestPath;
-                isComputingPath = false;
-
-                // Show 100% before hiding
-                if (progressEl) progressEl.textContent = '100';
-
-                setTimeout(() => {
-                    if (indicator) indicator.classList.remove('show');
-                }, 800);
-
-                console.log(`✅ Optimization complete: ${bestPath.length} captures found in ${totalIterations.toLocaleString()} iterations`);
-                console.log(`📊 Result: ${31 - bestPath.length} pieces remaining`);
-            }, 50);
-        }
 
         // Initialize board with classical chess setup (compressed to 4 rows at bottom)
         function initializeBoard() {
@@ -531,12 +416,8 @@
             updateStats();
             renderBoard();
 
-            // Compute optimal path for perfect algorithm (async to avoid blocking UI)
-            if (currentAlgorithm === 'perfect') {
-                setTimeout(() => {
-                    computeOptimalPath();
-                }, 100);
-            }
+            // Reset perfect path index when board is reset
+            currentPathIndex = 0;
         }
 
         // Render the chessboard
@@ -654,22 +535,17 @@
             return bestMove;
         }
 
-        // Perfect algorithm (uses precomputed optimal path via backtracking)
+        // Perfect algorithm (uses hardcoded optimal path - 31 captures guaranteed!)
         function selectMovePerfect() {
-            // If path is being computed, wait
-            if (isComputingPath) {
-                return null;
-            }
-
-            // If we have a precomputed path, follow it
-            if (optimalPath.length > 0 && currentPathIndex < optimalPath.length) {
-                const nextMove = optimalPath[currentPathIndex];
+            // Follow precomputed optimal path
+            if (currentPathIndex < OPTIMAL_PATH.length) {
+                const nextMove = OPTIMAL_PATH[currentPathIndex];
                 currentPathIndex++;
                 return nextMove;
             }
 
-            // Fallback: if no path available, use smart heuristic
-            return selectMoveSmart();
+            // No more moves (should not happen with perfect path)
+            return null;
         }
 
         // Select move based on current algorithm
@@ -793,11 +669,9 @@
             });
             document.getElementById(`algo-${algo}`).classList.add('active');
 
-            // If perfect algorithm is selected and path not computed, compute it
-            if (algo === 'perfect' && optimalPath.length === 0 && !isComputingPath) {
-                setTimeout(() => {
-                    computeOptimalPath();
-                }, 100);
+            // Reset path index when selecting perfect algorithm
+            if (algo === 'perfect') {
+                currentPathIndex = 0;
             }
         }
 
