@@ -1,0 +1,135 @@
+{
+  "p6_path": [
+    {
+      "row": 5,
+      "col": 1
+    },
+    {
+      "row": 4,
+      "col": 3
+    },
+    {
+      "row": 5,
+      "col": 5
+    },
+    {
+      "row": 4,
+      "col": 7
+    },
+    {
+      "row": 6,
+      "col": 6
+    },
+    {
+      "row": 4,
+      "col": 5
+    },
+    {
+      "row": 5,
+      "col": 7
+    },
+    {
+      "row": 7,
+      "col": 6
+    },
+    {
+      "row": 6,
+      "col": 4
+    },
+    {
+      "row": 7,
+      "col": 2
+    },
+    {
+      "row": 5,
+      "col": 3
+    },
+    {
+      "row": 7,
+      "col": 4
+    },
+    {
+      "row": 6,
+      "col": 2
+    },
+    {
+      "row": 4,
+      "col": 1
+    },
+    {
+      "row": 6,
+      "col": 0
+    },
+    {
+      "row": 5,
+      "col": 2
+    },
+    {
+      "row": 4,
+      "col": 0
+    },
+    {
+      "row": 6,
+      "col": 1
+    },
+    {
+      "row": 4,
+      "col": 2
+    },
+    {
+      "row": 5,
+      "col": 0
+    },
+    {
+      "row": 7,
+      "col": 1
+    },
+    {
+      "row": 6,
+      "col": 3
+    },
+    {
+      "row": 4,
+      "col": 4
+    },
+    {
+      "row": 5,
+      "col": 6
+    },
+    {
+      "row": 7,
+      "col": 7
+    },
+    {
+      "row": 6,
+      "col": 5
+    },
+    {
+      "row": 4,
+      "col": 6
+    },
+    {
+      "row": 6,
+      "col": 7
+    },
+    {
+      "row": 7,
+      "col": 5
+    },
+    {
+      "row": 5,
+      "col": 4
+    },
+    {
+      "row": 7,
+      "col": 3
+    }
+  ],
+  "score": 142,
+  "stats": {
+    "first_right_step": 3,
+    "left_in_first_20": 12,
+    "transitions": 6,
+    "max_left_streak": 10
+  }
+}

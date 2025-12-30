@@ -316,6 +316,10 @@
                         <button class="btn-algorithm" id="path-p3" onclick="selectAlgorithm('p3')">P3</button>
                         <button class="btn-algorithm" id="path-p4" onclick="selectAlgorithm('p4')">P4</button>
                         <button class="btn-algorithm" id="path-p5" onclick="selectAlgorithm('p5')">P5</button>
+                        <button class="btn-algorithm" id="path-p6" onclick="selectAlgorithm('p6')">P6</button>
+                    </div>
+                    <div style="font-size: 11px; color: #666; margin-top: 5px;">
+                        P6: Fokus na levo stran (10 korakov zapored levo) ✓
                     </div>
                 </div>
 
@@ -428,6 +432,9 @@
         const SIMPLE_PATH_P4 = [{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 4, col: 5},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 1},{row: 6, col: 0},{row: 7, col: 2},{row: 6, col: 4},{row: 7, col: 6},{row: 5, col: 7},{row: 6, col: 5},{row: 4, col: 6},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 4},{row: 7, col: 3},{row: 5, col: 2},{row: 4, col: 0},{row: 6, col: 1},{row: 4, col: 2},{row: 5, col: 0},{row: 7, col: 1},{row: 6, col: 3},{row: 4, col: 4},{row: 5, col: 6},{row: 7, col: 7}];
 
         const SIMPLE_PATH_P5 = [{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 4, col: 5},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 1},{row: 6, col: 0},{row: 7, col: 2},{row: 6, col: 4},{row: 7, col: 6},{row: 5, col: 7},{row: 6, col: 5},{row: 4, col: 6},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 4},{row: 7, col: 3},{row: 6, col: 1},{row: 4, col: 0},{row: 5, col: 2},{row: 7, col: 1},{row: 5, col: 0},{row: 4, col: 2},{row: 6, col: 3},{row: 4, col: 4},{row: 5, col: 6},{row: 7, col: 7}];
+
+        // P6: Fokus na levo stran (10 korakov zapored na levi)
+        const SIMPLE_PATH_P6 = [{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 4, col: 5},{row: 5, col: 7},{row: 7, col: 6},{row: 6, col: 4},{row: 7, col: 2},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 1},{row: 6, col: 0},{row: 5, col: 2},{row: 4, col: 0},{row: 6, col: 1},{row: 4, col: 2},{row: 5, col: 0},{row: 7, col: 1},{row: 6, col: 3},{row: 4, col: 4},{row: 5, col: 6},{row: 7, col: 7},{row: 6, col: 5},{row: 4, col: 6},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 4},{row: 7, col: 3}];
 
         let currentPathIndex = 0;
 
@@ -606,6 +613,9 @@
                 case 'p5':
                     selectedPath = SIMPLE_PATH_P5;
                     break;
+                case 'p6':
+                    selectedPath = SIMPLE_PATH_P6;
+                    break;
                 default:
                     selectedPath = OPTIMAL_PATH;
             }
@@ -634,6 +644,7 @@
                 case 'p3':
                 case 'p4':
                 case 'p5':
+                case 'p6':
                     return selectMovePerfect();
                 default:
                     return selectMoveSmart();
@@ -746,7 +757,7 @@
 
             // Determine correct button ID
             let buttonId;
-            if (['p1', 'p2', 'p3', 'p4', 'p5'].includes(algo)) {
+            if (['p1', 'p2', 'p3', 'p4', 'p5', 'p6'].includes(algo)) {
                 buttonId = `path-${algo}`;
             } else {
                 buttonId = `algo-${algo}`;
@@ -754,7 +765,7 @@
             document.getElementById(buttonId).classList.add('active');
 
             // Reset path index when selecting any perfect/precomputed algorithm
-            if (['perfect', 'p1', 'p2', 'p3', 'p4', 'p5'].includes(algo)) {
+            if (['perfect', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6'].includes(algo)) {
                 currentPathIndex = 0;
             }
         }
