@@ -14,36 +14,30 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+            min-height: 100vh;
             padding: 20px;
         }
 
         .container {
             background: white;
             border-radius: 20px;
-            padding: 30px;
+            padding: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             max-width: 900px;
+            width: 100%;
         }
 
         h1 {
             text-align: center;
             color: #333;
-            margin-bottom: 10px;
+            margin-bottom: 20px;
             font-size: 28px;
         }
 
-        .subtitle {
-            text-align: center;
-            color: #666;
-            margin-bottom: 25px;
-            font-size: 14px;
-        }
-
-        .game-area {
+        .game-layout {
             display: flex;
             gap: 30px;
             flex-wrap: wrap;
@@ -51,27 +45,27 @@
         }
 
         .board-container {
-            position: relative;
+            flex: 0 0 auto;
+            margin: 0 auto;
         }
 
-        .board {
+        .chessboard {
             display: grid;
-            grid-template-columns: repeat(8, 60px);
-            grid-template-rows: repeat(8, 60px);
+            grid-template-columns: repeat(8, 51px);
+            grid-template-rows: repeat(8, 51px);
             border: 3px solid #333;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
         .square {
-            width: 60px;
-            height: 60px;
+            width: 51px;
+            height: 51px;
             display: flex;
-            justify-content: center;
             align-items: center;
-            font-size: 32px;
-            cursor: default;
+            justify-content: center;
+            font-size: 34px;
             position: relative;
-            transition: all 0.2s ease;
+            transition: background-color 0.3s;
         }
 
         .square.light {
@@ -82,18 +76,12 @@
             background-color: #b58863;
         }
 
-        .square.knight {
-            background-color: #7fa650;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        .square.highlight {
+            background-color: #9acd32 !important;
         }
 
-        .square.target {
-            background-color: #f7e394;
-        }
-
-        .square.captured {
-            background-color: #e8e8e8;
-            opacity: 0.5;
+        .square.last-move {
+            background-color: #ffd700 !important;
         }
 
         .square.valid-move {
@@ -103,7 +91,7 @@
         }
 
         .square.valid-move:hover {
-            transform: scale(1.1);
+            transform: scale(1.08);
             z-index: 10;
         }
 
@@ -112,53 +100,84 @@
             50% { box-shadow: inset 0 0 0 5px #66BB6A; }
         }
 
+        .piece {
+            cursor: default;
+            user-select: none;
+        }
+
         .controls {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            min-width: 280px;
+            flex: 1;
+            min-width: 250px;
         }
 
         .control-section {
             background: #f8f9fa;
             padding: 15px;
             border-radius: 10px;
+            margin-bottom: 15px;
         }
 
         .control-section h3 {
-            font-size: 14px;
-            color: #555;
+            color: #333;
             margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 16px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
         }
 
         .button-group {
             display: flex;
-            gap: 8px;
+            gap: 10px;
             flex-wrap: wrap;
+            margin-bottom: 10px;
         }
 
-        .btn {
-            padding: 12px 24px;
+        button {
+            padding: 10px 15px;
             border: none;
             border-radius: 8px;
-            cursor: pointer;
             font-size: 14px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 100px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #667eea;
             color: white;
         }
 
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            background: #5568d3;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
         }
 
         .btn-secondary {
@@ -171,24 +190,15 @@
         }
 
         .btn-algorithm {
-            flex: 1;
-            min-width: 70px;
-            padding: 8px 12px;
-            background: white;
-            color: #667eea;
-            border: 2px solid #667eea;
-            font-size: 12px;
-        }
-
-        .btn-algorithm:hover {
-            background: #667eea;
-            color: white;
+            background: #e9ecef;
+            color: #333;
+            border: 2px solid transparent;
         }
 
         .btn-algorithm.active {
             background: #667eea;
             color: white;
-            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.4);
+            border-color: #5568d3;
         }
 
         .stats {
@@ -202,93 +212,119 @@
             padding: 10px;
             border-radius: 8px;
             text-align: center;
+            border: 2px solid #667eea;
         }
 
         .stat-label {
-            font-size: 11px;
-            color: #888;
-            text-transform: uppercase;
+            font-size: 12px;
+            color: #666;
             margin-bottom: 5px;
         }
 
         .stat-value {
             font-size: 24px;
-            font-weight: 700;
+            font-weight: bold;
             color: #667eea;
         }
 
-        .message {
-            padding: 15px;
-            border-radius: 8px;
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .speed-display {
+            flex: 1;
             text-align: center;
-            font-weight: 600;
+            font-weight: bold;
+            color: #667eea;
+            font-size: 16px;
+        }
+
+        .game-over {
+            background: #28a745;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
             display: none;
+            margin-top: 15px;
         }
 
-        .message.success {
-            background: #d4edda;
-            color: #155724;
+        .game-over.show {
             display: block;
         }
 
-        .message.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            display: block;
-        }
-
+        /* Mobile optimization */
         @media (max-width: 768px) {
-            .board {
-                grid-template-columns: repeat(8, 45px);
-                grid-template-rows: repeat(8, 45px);
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 22px;
+                margin-bottom: 15px;
+            }
+
+            .game-layout {
+                gap: 15px;
+            }
+
+            .chessboard {
+                grid-template-columns: repeat(8, 42px);
+                grid-template-rows: repeat(8, 42px);
+                margin: 0 auto;
             }
 
             .square {
-                width: 45px;
-                height: 45px;
-                font-size: 24px;
+                width: 42px;
+                height: 42px;
+                font-size: 28px;
             }
 
-            .game-area {
-                flex-direction: column;
+            .controls {
+                width: 100%;
+                max-width: 100%;
+            }
+
+            button {
+                padding: 8px 12px;
+                font-size: 13px;
+                min-width: auto;
+            }
+
+            .stat-value {
+                font-size: 20px;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>♞ Šahovska igra s konjem ♞</h1>
-        <p class="subtitle">Konj mora ujeti vse figure (31 figur) brez preostalih</p>
+        <h1>🐴 Šahovska igra s konjem</h1>
 
-        <div class="game-area">
+        <div class="game-layout">
             <div class="board-container">
-                <div id="board" class="board"></div>
+                <div id="chessboard" class="chessboard"></div>
             </div>
 
             <div class="controls">
                 <div class="control-section">
-                    <h3>Nadzor igre</h3>
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <button class="btn btn-primary" onclick="startGame()">Začni igro</button>
-                        <button class="btn btn-secondary" onclick="nextMove()">Naslednja poteza</button>
-                        <button class="btn btn-secondary" onclick="resetGame()">Resetiraj</button>
-                    </div>
-                </div>
-
-                <div class="control-section">
-                    <h3>Osnovni algoritmi</h3>
+                    <h3>Algoritmi</h3>
                     <div class="button-group">
-                        <button class="btn-algorithm" id="algo-random" onclick="selectAlgorithm('random')">Naključno</button>
+                        <button class="btn-algorithm" id="algo-random" onclick="selectAlgorithm('random')">Naključni</button>
                         <button class="btn-algorithm active" id="algo-smart" onclick="selectAlgorithm('smart')">Pameten</button>
                         <button class="btn-algorithm" id="algo-perfect" onclick="selectAlgorithm('perfect')">Popolno</button>
+                        <button class="btn-algorithm" id="algo-interactive" onclick="selectAlgorithm('interactive')">🎮 Igra</button>
                     </div>
-                </div>
-
-                <div class="control-section">
-                    <h3>Interaktivno</h3>
-                    <button class="btn-algorithm" id="algo-interactive" onclick="selectAlgorithm('interactive')" style="width: 100%;">🎮 Igra (klikaj polja)</button>
-                    <div id="interactive-hint" style="font-size: 11px; color: #666; margin-top: 8px; display: none;">
-                        Klikni na zeleno označeno polje kamor lahko skoči konj
+                    <div id="interactive-hint" style="font-size: 11px; color: #666; margin-top: 5px; display: none;">
+                        ▶ Klikni na zeleno označeno polje kamor naj skoči konj
                     </div>
                 </div>
 
@@ -308,6 +344,24 @@
                 </div>
 
                 <div class="control-section">
+                    <h3>Nadzor igre</h3>
+                    <div class="button-group">
+                        <button class="btn-success" onclick="startGame()">Start</button>
+                        <button class="btn-danger" onclick="stopGame()">Stop</button>
+                        <button class="btn-secondary" onclick="resetGame()">Reset</button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Hitrost</h3>
+                    <div class="speed-control">
+                        <button class="btn-primary" onclick="decreaseSpeed()">🐌 Počasneje</button>
+                        <div class="speed-display" id="speed-display">0.5s</div>
+                        <button class="btn-primary" onclick="increaseSpeed()">⚡ Hitreje</button>
+                    </div>
+                </div>
+
+                <div class="control-section">
                     <h3>Statistika</h3>
                     <div class="stats">
                         <div class="stat-item">
@@ -315,7 +369,7 @@
                             <div class="stat-value" id="moves">0</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-label">Ujete</div>
+                            <div class="stat-label">Pobrane</div>
                             <div class="stat-value" id="captured">0</div>
                         </div>
                         <div class="stat-item">
@@ -323,123 +377,180 @@
                             <div class="stat-value" id="remaining">31</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-label">Algoritem</div>
-                            <div class="stat-value" id="current-algo" style="font-size: 14px;">Pameten</div>
+                            <div class="stat-label">Možne poteze</div>
+                            <div class="stat-value" id="possible">0</div>
                         </div>
                     </div>
                 </div>
 
-                <div id="message" class="message"></div>
+                <div class="game-over" id="game-over">
+                    🎉 Igra končana! <br>
+                    <span id="final-stats"></span>
+                </div>
+
             </div>
         </div>
     </div>
 
     <script>
         // Game state
-        let board = [];
-        let knightPos = {row: 0, col: 0};
-        let targetPieces = [];
-        let capturedCount = 0;
-        let moveCount = 0;
+        let board = Array(8).fill().map(() => Array(8).fill(null));
+        let knightPos = { row: 7, col: 0 }; // a1 position (bottom-left)
+        let gameRunning = false;
+        let moveSpeed = 500; // milliseconds
         let currentAlgorithm = 'smart';
+        let stats = {
+            moves: 0,
+            captured: 0,
+            remaining: 30
+        };
+        let gameInterval = null;
+        let lastMoveSquare = null;
+
+        // Precomputed optimal path (computed offline - 31 captures, 0 remaining!)
+        const OPTIMAL_PATH = [
+            {row: 5, col: 1},
+            {row: 4, col: 3},
+            {row: 6, col: 2},
+            {row: 4, col: 1},
+            {row: 6, col: 0},
+            {row: 7, col: 2},
+            {row: 5, col: 3},
+            {row: 7, col: 4},
+            {row: 6, col: 6},
+            {row: 4, col: 7},
+            {row: 5, col: 5},
+            {row: 7, col: 6},
+            {row: 5, col: 7},
+            {row: 4, col: 5},
+            {row: 6, col: 4},
+            {row: 5, col: 6},
+            {row: 7, col: 7},
+            {row: 6, col: 5},
+            {row: 4, col: 4},
+            {row: 5, col: 2},
+            {row: 4, col: 0},
+            {row: 6, col: 1},
+            {row: 7, col: 3},
+            {row: 5, col: 4},
+            {row: 4, col: 6},
+            {row: 6, col: 7},
+            {row: 7, col: 5},
+            {row: 6, col: 3},
+            {row: 4, col: 2},
+            {row: 5, col: 0},
+            {row: 7, col: 1}
+        ];
+
+        // 5 enostavnih poti za otroke (compute offline)
+        const SIMPLE_PATH_P1 = [{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 4, col: 5},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 1},{row: 6, col: 0},{row: 7, col: 2},{row: 6, col: 4},{row: 7, col: 6},{row: 5, col: 7},{row: 6, col: 5},{row: 7, col: 7},{row: 5, col: 6},{row: 4, col: 4},{row: 5, col: 2},{row: 7, col: 1},{row: 5, col: 0},{row: 4, col: 2},{row: 6, col: 3},{row: 7, col: 5},{row: 6, col: 7},{row: 4, col: 6},{row: 5, col: 4},{row: 7, col: 3},{row: 6, col: 1},{row: 4, col: 0}];
+
+        const SIMPLE_PATH_P2 = [{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 4, col: 5},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 1},{row: 6, col: 0},{row: 7, col: 2},{row: 6, col: 4},{row: 7, col: 6},{row: 5, col: 7},{row: 6, col: 5},{row: 4, col: 4},{row: 6, col: 3},{row: 4, col: 2},{row: 5, col: 0},{row: 7, col: 1},{row: 5, col: 2},{row: 4, col: 0},{row: 6, col: 1},{row: 7, col: 3},{row: 5, col: 4},{row: 4, col: 6},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 6},{row: 7, col: 7}];
+
+        const SIMPLE_PATH_P3 = [{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 4, col: 5},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 1},{row: 6, col: 0},{row: 7, col: 2},{row: 6, col: 4},{row: 7, col: 6},{row: 5, col: 7},{row: 6, col: 5},{row: 4, col: 4},{row: 6, col: 3},{row: 7, col: 1},{row: 5, col: 0},{row: 4, col: 2},{row: 6, col: 1},{row: 4, col: 0},{row: 5, col: 2},{row: 7, col: 3},{row: 5, col: 4},{row: 4, col: 6},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 6},{row: 7, col: 7}];
+
+        const SIMPLE_PATH_P4 = [{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 4, col: 5},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 1},{row: 6, col: 0},{row: 7, col: 2},{row: 6, col: 4},{row: 7, col: 6},{row: 5, col: 7},{row: 6, col: 5},{row: 4, col: 6},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 4},{row: 7, col: 3},{row: 5, col: 2},{row: 4, col: 0},{row: 6, col: 1},{row: 4, col: 2},{row: 5, col: 0},{row: 7, col: 1},{row: 6, col: 3},{row: 4, col: 4},{row: 5, col: 6},{row: 7, col: 7}];
+
+        const SIMPLE_PATH_P5 = [{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 4, col: 5},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 1},{row: 6, col: 0},{row: 7, col: 2},{row: 6, col: 4},{row: 7, col: 6},{row: 5, col: 7},{row: 6, col: 5},{row: 4, col: 6},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 4},{row: 7, col: 3},{row: 6, col: 1},{row: 4, col: 0},{row: 5, col: 2},{row: 7, col: 1},{row: 5, col: 0},{row: 4, col: 2},{row: 6, col: 3},{row: 4, col: 4},{row: 5, col: 6},{row: 7, col: 7}];
+
+        // P6: Fokus na levo stran (10 korakov zapored na levi)
+        const SIMPLE_PATH_P6 = [{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 4, col: 5},{row: 5, col: 7},{row: 7, col: 6},{row: 6, col: 4},{row: 7, col: 2},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 1},{row: 6, col: 0},{row: 5, col: 2},{row: 4, col: 0},{row: 6, col: 1},{row: 4, col: 2},{row: 5, col: 0},{row: 7, col: 1},{row: 6, col: 3},{row: 4, col: 4},{row: 5, col: 6},{row: 7, col: 7},{row: 6, col: 5},{row: 4, col: 6},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 4},{row: 7, col: 3}];
+
         let currentPathIndex = 0;
-        let gameStarted = false;
+
+        // Chess pieces (Unicode)
+        const pieces = {
+            'K': '♔', 'Q': '♕', 'R': '♖', 'B': '♗', 'N': '♘', 'P': '♙',
+            'k': '♚', 'q': '♛', 'r': '♜', 'b': '♝', 'n': '♞', 'p': '♟'
+        };
 
         // Knight move offsets
-        const KNIGHT_MOVES = [
+        const knightMoves = [
             [-2, -1], [-2, 1], [-1, -2], [-1, 2],
             [1, -2], [1, 2], [2, -1], [2, 1]
         ];
 
-        // Optimal path (31 captures, 0 remaining)
-        const OPTIMAL_PATH = [{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 4, col: 5},{row: 5, col: 7},{row: 7, col: 6},{row: 6, col: 4},{row: 7, col: 2},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 1},{row: 6, col: 0},{row: 5, col: 2},{row: 4, col: 0},{row: 6, col: 1},{row: 4, col: 2},{row: 5, col: 0},{row: 7, col: 1},{row: 6, col: 3},{row: 4, col: 4},{row: 5, col: 6},{row: 7, col: 7},{row: 6, col: 5},{row: 4, col: 6},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 4},{row: 7, col: 3}];
+        // Initialize board with classical chess setup (compressed to 4 rows at bottom)
+        function initializeBoard() {
+            // Clear board
+            board = Array(8).fill().map(() => Array(8).fill(null));
 
-        // Simple paths P1-P5 (systematic approaches)
-        const SIMPLE_PATH_P1 = [{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 7, col: 4},{row: 6, col: 2},{row: 7, col: 0},{row: 5, col: 1},{row: 4, col: 3},{row: 6, col: 4},{row: 7, col: 6},{row: 5, col: 7},{row: 4, col: 5},{row: 6, col: 6},{row: 7, col: 4},{row: 5, col: 3},{row: 4, col: 1},{row: 6, col: 0},{row: 7, col: 2},{row: 5, col: 3},{row: 4, col: 5},{row: 6, col: 4},{row: 4, col: 3},{row: 5, col: 1},{row: 7, col: 2},{row: 6, col: 0},{row: 4, col: 1},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 2}];
-
-        const SIMPLE_PATH_P2 = [{row: 4, col: 1},{row: 5, col: 3},{row: 4, col: 5},{row: 5, col: 7},{row: 7, col: 6},{row: 6, col: 4},{row: 7, col: 2},{row: 6, col: 0},{row: 4, col: 1},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 6},{row: 4, col: 7},{row: 5, col: 5},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 4},{row: 4, col: 2},{row: 6, col: 1},{row: 7, col: 3},{row: 5, col: 2},{row: 4, col: 4},{row: 6, col: 3},{row: 4, col: 2},{row: 5, col: 0},{row: 7, col: 1},{row: 6, col: 3},{row: 4, col: 4},{row: 5, col: 6},{row: 7, col: 7},{row: 6, col: 5}];
-
-        const SIMPLE_PATH_P3 = [{row: 6, col: 0},{row: 4, col: 1},{row: 5, col: 3},{row: 4, col: 5},{row: 6, col: 6},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 3},{row: 5, col: 5},{row: 7, col: 6},{row: 6, col: 4},{row: 4, col: 5},{row: 5, col: 7},{row: 7, col: 6},{row: 6, col: 4},{row: 7, col: 2},{row: 5, col: 1},{row: 4, col: 3},{row: 6, col: 2},{row: 7, col: 0},{row: 5, col: 1},{row: 4, col: 3},{row: 6, col: 4},{row: 7, col: 6},{row: 5, col: 7},{row: 4, col: 5},{row: 6, col: 6},{row: 7, col: 4},{row: 5, col: 3},{row: 4, col: 1},{row: 6, col: 0}];
-
-        const SIMPLE_PATH_P4 = [{row: 5, col: 0},{row: 4, col: 2},{row: 5, col: 4},{row: 4, col: 6},{row: 6, col: 7},{row: 7, col: 5},{row: 6, col: 3},{row: 7, col: 1},{row: 5, col: 0},{row: 4, col: 2},{row: 6, col: 3},{row: 7, col: 5},{row: 5, col: 6},{row: 4, col: 4},{row: 6, col: 5},{row: 7, col: 7},{row: 5, col: 6},{row: 4, col: 4},{row: 6, col: 3},{row: 7, col: 1},{row: 5, col: 2},{row: 4, col: 0},{row: 6, col: 1},{row: 7, col: 3},{row: 5, col: 4},{row: 4, col: 6},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 6},{row: 6, col: 4},{row: 7, col: 2}];
-
-        const SIMPLE_PATH_P5 = [{row: 7, col: 0},{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 1},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 6},{row: 4, col: 7},{row: 5, col: 5},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 4},{row: 4, col: 2},{row: 6, col: 1},{row: 7, col: 3},{row: 5, col: 2},{row: 4, col: 4},{row: 6, col: 3},{row: 4, col: 2},{row: 5, col: 0},{row: 7, col: 1},{row: 6, col: 3},{row: 4, col: 4},{row: 5, col: 6},{row: 7, col: 7},{row: 6, col: 5}];
-
-        // P6: Fokus na levo stran (10 korakov zapored levo)
-        const SIMPLE_PATH_P6 = [{row: 5, col: 1},{row: 4, col: 3},{row: 5, col: 5},{row: 4, col: 7},{row: 6, col: 6},{row: 4, col: 5},{row: 5, col: 7},{row: 7, col: 6},{row: 6, col: 4},{row: 7, col: 2},{row: 5, col: 3},{row: 7, col: 4},{row: 6, col: 2},{row: 4, col: 1},{row: 6, col: 0},{row: 5, col: 2},{row: 4, col: 0},{row: 6, col: 1},{row: 4, col: 2},{row: 5, col: 0},{row: 7, col: 1},{row: 6, col: 3},{row: 4, col: 4},{row: 5, col: 6},{row: 7, col: 7},{row: 6, col: 5},{row: 4, col: 6},{row: 6, col: 7},{row: 7, col: 5},{row: 5, col: 4},{row: 7, col: 3}];
-
-        // Initialize the game
-        function initGame() {
-            // Create empty board
-            board = Array(8).fill(null).map(() => Array(8).fill(0));
-
-            // Place knight at a1 (bottom-left corner = row 0, col 0)
-            knightPos = {row: 0, col: 0};
-            board[0][0] = 2; // 2 = knight
-
-            // Place target pieces in rows 4-7 (top half of board)
-            targetPieces = [];
-            for (let row = 4; row < 8; row++) {
-                for (let col = 0; col < 8; col++) {
-                    board[row][col] = 1; // 1 = target piece
-                    targetPieces.push({row, col});
-                }
+            // Black pieces (rows 4-5, bottom area)
+            const blackBackRow = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'];
+            for (let col = 0; col < 8; col++) {
+                board[4][col] = blackBackRow[col];
+                board[5][col] = 'p';
             }
 
-            capturedCount = 0;
-            moveCount = 0;
-            currentPathIndex = 0;
-            gameStarted = false;
+            // White pieces (rows 6-7, bottom area)
+            for (let col = 0; col < 8; col++) {
+                board[6][col] = 'P';
+            }
+            const whiteBackRow = ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'];
+            for (let col = 0; col < 8; col++) {
+                board[7][col] = whiteBackRow[col];
+            }
 
-            renderBoard();
+            // Replace white knight at a1 (row 7, col 0) with active KNIGHT
+            board[7][0] = 'KNIGHT';
+            knightPos = { row: 7, col: 0 };
+
+            // Reset stats
+            stats = {
+                moves: 0,
+                captured: 0,
+                remaining: 31 // 32 total pieces - 1 knight = 31
+            };
+
             updateStats();
+            renderBoard();
+
+            // Reset perfect path index when board is reset
+            currentPathIndex = 0;
         }
 
-        // Render the board
+        // Render the chessboard
         function renderBoard() {
-            const boardElement = document.getElementById('board');
-            boardElement.innerHTML = '';
+            const chessboard = document.getElementById('chessboard');
+            chessboard.innerHTML = '';
 
-            for (let row = 7; row >= 0; row--) {
+            for (let row = 0; row < 8; row++) {
                 for (let col = 0; col < 8; col++) {
                     const square = document.createElement('div');
                     square.className = 'square';
+                    square.className += (row + col) % 2 === 0 ? ' light' : ' dark';
                     square.dataset.row = row;
                     square.dataset.col = col;
 
-                    // Checkerboard pattern
-                    if ((row + col) % 2 === 0) {
-                        square.classList.add('light');
-                    } else {
-                        square.classList.add('dark');
+                    const piece = board[row][col];
+                    if (piece) {
+                        if (piece === 'KNIGHT') {
+                            square.innerHTML = '<span class="piece">♞</span>';
+                        } else {
+                            square.innerHTML = `<span class="piece">${pieces[piece]}</span>`;
+                        }
                     }
 
-                    // Cell content
-                    if (board[row][col] === 2) {
-                        square.textContent = '♞';
-                        square.classList.add('knight');
-                    } else if (board[row][col] === 1) {
-                        square.textContent = '♟';
-                        square.classList.add('target');
-                    } else if (board[row][col] === 3) {
-                        square.textContent = '';
-                        square.classList.add('captured');
-                    }
-
-                    boardElement.appendChild(square);
+                    chessboard.appendChild(square);
                 }
             }
 
-            // If interactive mode, highlight valid moves
-            if (currentAlgorithm === 'interactive' && gameStarted) {
+            updatePossibleMoves();
+
+            // Highlight valid moves in interactive mode
+            if (currentAlgorithm === 'interactive' && gameRunning) {
                 highlightValidMoves();
             }
         }
 
-        // Highlight valid moves in interactive mode
+        // Highlight valid moves for interactive mode
         function highlightValidMoves() {
-            const validMoves = getValidMoves(knightPos);
-            validMoves.forEach(move => {
+            const validMoves = getValidMoves(knightPos.row, knightPos.col);
+            const captureMoves = validMoves.filter(move =>
+                board[move.row][move.col] !== null
+            );
+
+            captureMoves.forEach(move => {
                 const square = document.querySelector(`[data-row="${move.row}"][data-col="${move.col}"]`);
                 if (square) {
                     square.classList.add('valid-move');
@@ -448,192 +559,78 @@
             });
         }
 
-        // Get valid moves for knight
-        function getValidMoves(pos) {
-            const moves = [];
-            for (const [dr, dc] of KNIGHT_MOVES) {
-                const newRow = pos.row + dr;
-                const newCol = pos.col + dc;
-
-                if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
-                    if (board[newRow][newCol] === 1) { // Can only move to target pieces
-                        moves.push({row: newRow, col: newCol});
-                    }
-                }
-            }
-            return moves;
-        }
-
         // Make a move in interactive mode
         function makeInteractiveMove(move) {
-            if (!gameStarted || currentAlgorithm !== 'interactive') return;
+            if (currentAlgorithm !== 'interactive' || !gameRunning) return;
 
-            // Move knight
-            board[knightPos.row][knightPos.col] = 3; // Mark as captured
-            knightPos = move;
-            board[move.row][move.col] = 2; // Place knight
-
-            capturedCount++;
-            moveCount++;
-
-            renderBoard();
-            updateStats();
-            checkGameEnd();
+            moveKnight(move);
         }
 
-        // Update statistics display
-        function updateStats() {
-            document.getElementById('moves').textContent = moveCount;
-            document.getElementById('captured').textContent = capturedCount;
-            document.getElementById('remaining').textContent = 31 - capturedCount;
+        // Get valid knight moves
+        function getValidMoves(row, col) {
+            const validMoves = [];
 
-            const algoNames = {
-                'random': 'Naključno',
-                'smart': 'Pameten',
-                'perfect': 'Popolno',
-                'interactive': 'Igra',
-                'p1': 'P1',
-                'p2': 'P2',
-                'p3': 'P3',
-                'p4': 'P4',
-                'p5': 'P5',
-                'p6': 'P6'
-            };
-            document.getElementById('current-algo').textContent = algoNames[currentAlgorithm] || 'Pameten';
-        }
+            for (const [dr, dc] of knightMoves) {
+                const newRow = row + dr;
+                const newCol = col + dc;
 
-        // Start the game
-        function startGame() {
-            initGame();
-            gameStarted = true;
-            showMessage('Igra začeta! Klikni "Naslednja poteza" ali izberi polje.', 'info');
-
-            // Show interactive hint if in interactive mode
-            if (currentAlgorithm === 'interactive') {
-                document.getElementById('interactive-hint').style.display = 'block';
-                renderBoard(); // Re-render to show valid moves
-            }
-        }
-
-        // Reset game
-        function resetGame() {
-            initGame();
-            gameStarted = false;
-            document.getElementById('interactive-hint').style.display = 'none';
-            showMessage('Igra resetirana. Klikni "Začni igro" za začetek.', 'info');
-        }
-
-        // Select algorithm
-        function selectAlgorithm(algo) {
-            currentAlgorithm = algo;
-            document.querySelectorAll('.btn-algorithm').forEach(btn => {
-                btn.classList.remove('active');
-            });
-
-            let buttonId;
-            if (['p1', 'p2', 'p3', 'p4', 'p5', 'p6'].includes(algo)) {
-                buttonId = `path-${algo}`;
-            } else if (algo === 'interactive') {
-                buttonId = `algo-interactive`;
-            } else {
-                buttonId = `algo-${algo}`;
-            }
-            document.getElementById(buttonId).classList.add('active');
-
-            if (['perfect', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6'].includes(algo)) {
-                currentPathIndex = 0;
-            }
-
-            // Show/hide interactive hint
-            if (algo === 'interactive') {
-                if (gameStarted) {
-                    document.getElementById('interactive-hint').style.display = 'block';
-                    renderBoard(); // Re-render to show valid moves
+                if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
+                    validMoves.push({ row: newRow, col: newCol });
                 }
-            } else {
-                document.getElementById('interactive-hint').style.display = 'none';
             }
 
-            updateStats();
+            return validMoves;
         }
 
-        // Execute next move
-        function nextMove() {
-            if (!gameStarted) {
-                showMessage('Najprej začni igro!', 'info');
-                return;
-            }
-
-            if (currentAlgorithm === 'interactive') {
-                showMessage('V interaktivnem načinu klikni na zeleno polje!', 'info');
-                return;
-            }
-
-            const move = selectMove();
-            if (!move) {
-                const remaining = 31 - capturedCount;
-                if (remaining === 0) {
-                    showMessage(`Čestitke! Vse figure ujete v ${moveCount} potezah! 🎉`, 'success');
-                } else {
-                    showMessage(`Igra končana. Ujeto: ${capturedCount}, Preostalo: ${remaining}`, 'info');
-                }
-                gameStarted = false;
-                return;
-            }
-
-            // Execute the move
-            board[knightPos.row][knightPos.col] = 3; // Mark current position as captured
-            knightPos = move;
-            board[move.row][move.col] = 2; // Place knight at new position
-
-            capturedCount++;
-            moveCount++;
-
-            renderBoard();
-            updateStats();
-            checkGameEnd();
+        // Update possible moves count (only capture moves)
+        function updatePossibleMoves() {
+            const validMoves = getValidMoves(knightPos.row, knightPos.col);
+            const captureMoves = validMoves.filter(move =>
+                board[move.row][move.col] !== null
+            );
+            document.getElementById('possible').textContent = captureMoves.length;
         }
 
-        // Select move based on current algorithm
-        function selectMove() {
-            switch (currentAlgorithm) {
-                case 'random':
-                    return selectMoveRandom();
-                case 'smart':
-                    return selectMoveSmart();
-                case 'perfect':
-                case 'p1':
-                case 'p2':
-                case 'p3':
-                case 'p4':
-                case 'p5':
-                case 'p6':
-                    return selectMovePerfect();
-                default:
-                    return selectMoveSmart();
-            }
-        }
-
-        // Random move selection
+        // Random algorithm (only capture moves)
         function selectMoveRandom() {
-            const validMoves = getValidMoves(knightPos);
+            const validMoves = getValidMoves(knightPos.row, knightPos.col);
             if (validMoves.length === 0) return null;
-            return validMoves[Math.floor(Math.random() * validMoves.length)];
+
+            // Only allow capture moves
+            const captureMoves = validMoves.filter(move =>
+                board[move.row][move.col] !== null
+            );
+
+            if (captureMoves.length === 0) return null;
+            return captureMoves[Math.floor(Math.random() * captureMoves.length)];
         }
 
-        // Smart move selection (Warnsdorff's algorithm)
+        // Smart algorithm (Warnsdorff's heuristic - instant, no waiting)
         function selectMoveSmart() {
-            const validMoves = getValidMoves(knightPos);
+            const validMoves = getValidMoves(knightPos.row, knightPos.col);
             if (validMoves.length === 0) return null;
 
-            // For each valid move, count how many moves would be available from there
-            let bestMove = null;
-            let minAccessibility = Infinity;
+            // Only allow capture moves
+            const captureMoves = validMoves.filter(move =>
+                board[move.row][move.col] !== null
+            );
 
-            for (const move of validMoves) {
-                const accessibility = getValidMoves(move).length;
-                if (accessibility < minAccessibility) {
-                    minAccessibility = accessibility;
+            if (captureMoves.length === 0) return null;
+
+            // Warnsdorff's heuristic: choose capture with FEWEST onward captures
+            // This prevents getting stuck in corners early
+            let bestMove = captureMoves[0];
+            let minOnwardCaptures = Infinity;
+
+            for (const move of captureMoves) {
+                // Count onward capture possibilities
+                const onwardMoves = getValidMoves(move.row, move.col);
+                const onwardCaptures = onwardMoves.filter(m =>
+                    board[m.row][m.col] !== null && !(m.row === knightPos.row && m.col === knightPos.col)
+                ).length;
+
+                if (onwardCaptures < minOnwardCaptures) {
+                    minOnwardCaptures = onwardCaptures;
                     bestMove = move;
                 }
             }
@@ -641,8 +638,9 @@
             return bestMove;
         }
 
-        // Perfect move selection (pre-computed optimal path)
+        // Perfect algorithm (uses hardcoded optimal path - 31 captures guaranteed!)
         function selectMovePerfect() {
+            // Select correct path based on algorithm
             let selectedPath;
             switch (currentAlgorithm) {
                 case 'perfect':
@@ -670,39 +668,209 @@
                     selectedPath = OPTIMAL_PATH;
             }
 
+            // Follow precomputed path
             if (currentPathIndex < selectedPath.length) {
                 const nextMove = selectedPath[currentPathIndex];
                 currentPathIndex++;
                 return nextMove;
             }
+
+            // No more moves (should not happen with perfect path)
             return null;
         }
 
-        // Check if game has ended
-        function checkGameEnd() {
-            const validMoves = getValidMoves(knightPos);
-            const remaining = 31 - capturedCount;
+        // Select move based on current algorithm
+        function selectMove() {
+            switch (currentAlgorithm) {
+                case 'random':
+                    return selectMoveRandom();
+                case 'smart':
+                    return selectMoveSmart();
+                case 'perfect':
+                case 'p1':
+                case 'p2':
+                case 'p3':
+                case 'p4':
+                case 'p5':
+                case 'p6':
+                    return selectMovePerfect();
+                default:
+                    return selectMoveSmart();
+            }
+        }
 
-            if (remaining === 0) {
-                showMessage(`Čestitke! Vse figure ujete v ${moveCount} potezah! 🎉`, 'success');
-                gameStarted = false;
-                document.getElementById('interactive-hint').style.display = 'none';
-            } else if (validMoves.length === 0) {
-                showMessage(`Igra končana. Ujeto: ${capturedCount}, Preostalo: ${remaining}`, 'info');
-                gameStarted = false;
+        // Move knight
+        function moveKnight(newPos) {
+            // Check if capturing a piece (must always be true with new rules)
+            const captured = board[newPos.row][newPos.col] !== null;
+
+            // Move knight
+            board[knightPos.row][knightPos.col] = null;
+            board[newPos.row][newPos.col] = 'KNIGHT';
+            knightPos = newPos;
+
+            // Update stats
+            stats.moves++;
+            if (captured) {
+                stats.captured++;
+                stats.remaining--;
+            }
+
+            updateStats();
+            renderBoard();
+            highlightLastMove(newPos);
+
+            // Check if game over (no more capture moves available)
+            const validMoves = getValidMoves(knightPos.row, knightPos.col);
+            const captureMoves = validMoves.filter(move =>
+                board[move.row][move.col] !== null
+            );
+
+            if (captureMoves.length === 0 || stats.remaining === 0) {
+                endGame();
+            }
+        }
+
+        // Highlight last move
+        function highlightLastMove(pos) {
+            // Remove previous highlight
+            const squares = document.querySelectorAll('.square');
+            squares.forEach(sq => sq.classList.remove('last-move'));
+
+            // Add new highlight
+            const square = document.querySelector(`[data-row="${pos.row}"][data-col="${pos.col}"]`);
+            if (square) {
+                square.classList.add('last-move');
+            }
+        }
+
+        // Update statistics display
+        function updateStats() {
+            document.getElementById('moves').textContent = stats.moves;
+            document.getElementById('captured').textContent = stats.captured;
+            document.getElementById('remaining').textContent = stats.remaining;
+        }
+
+        // Game loop
+        function gameLoop() {
+            const nextMove = selectMove();
+            if (nextMove) {
+                moveKnight(nextMove);
+            } else {
+                endGame();
+            }
+        }
+
+        // Start game
+        function startGame() {
+            if (gameRunning) return;
+
+            gameRunning = true;
+            document.getElementById('game-over').classList.remove('show');
+
+            // In interactive mode, just show valid moves, don't start auto-play
+            if (currentAlgorithm === 'interactive') {
+                document.getElementById('interactive-hint').style.display = 'block';
+                renderBoard(); // Show green squares
+            } else {
+                gameInterval = setInterval(gameLoop, moveSpeed);
+            }
+        }
+
+        // Stop game
+        function stopGame() {
+            gameRunning = false;
+            if (gameInterval) {
+                clearInterval(gameInterval);
+                gameInterval = null;
+            }
+        }
+
+        // Reset game
+        function resetGame() {
+            stopGame();
+            document.getElementById('game-over').classList.remove('show');
+            initializeBoard();
+        }
+
+        // End game
+        function endGame() {
+            stopGame();
+            const gameOverDiv = document.getElementById('game-over');
+            const finalStats = document.getElementById('final-stats');
+            finalStats.textContent = `Poteze: ${stats.moves} | Pobrane: ${stats.captured}/${31} | Preostale: ${stats.remaining}`;
+            gameOverDiv.classList.add('show');
+
+            // Hide interactive hint when game ends
+            if (currentAlgorithm === 'interactive') {
                 document.getElementById('interactive-hint').style.display = 'none';
             }
         }
 
-        // Show message
-        function showMessage(text, type) {
-            const messageEl = document.getElementById('message');
-            messageEl.textContent = text;
-            messageEl.className = `message ${type}`;
+        // Select algorithm
+        function selectAlgorithm(algo) {
+            currentAlgorithm = algo;
+
+            // Update button styles
+            document.querySelectorAll('.btn-algorithm').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Determine correct button ID
+            let buttonId;
+            if (['p1', 'p2', 'p3', 'p4', 'p5', 'p6'].includes(algo)) {
+                buttonId = `path-${algo}`;
+            } else {
+                buttonId = `algo-${algo}`;
+            }
+            document.getElementById(buttonId).classList.add('active');
+
+            // Reset path index when selecting any perfect/precomputed algorithm
+            if (['perfect', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6'].includes(algo)) {
+                currentPathIndex = 0;
+            }
+
+            // Show/hide interactive hint and re-render for valid moves
+            const hintElement = document.getElementById('interactive-hint');
+            if (algo === 'interactive') {
+                hintElement.style.display = 'block';
+                if (gameRunning) {
+                    renderBoard(); // Re-render to show valid moves
+                }
+            } else {
+                hintElement.style.display = 'none';
+            }
         }
 
-        // Initialize on page load
-        initGame();
+        // Speed controls
+        function increaseSpeed() {
+            moveSpeed = Math.max(100, moveSpeed - 100);
+            updateSpeedDisplay();
+
+            // Restart interval if game is running
+            if (gameRunning) {
+                stopGame();
+                startGame();
+            }
+        }
+
+        function decreaseSpeed() {
+            moveSpeed = Math.min(2000, moveSpeed + 100);
+            updateSpeedDisplay();
+
+            // Restart interval if game is running
+            if (gameRunning) {
+                stopGame();
+                startGame();
+            }
+        }
+
+        function updateSpeedDisplay() {
+            document.getElementById('speed-display').textContent = (moveSpeed / 1000).toFixed(1) + 's';
+        }
+
+        // Initialize game on load
+        initializeBoard();
     </script>
 </body>
 </html>
