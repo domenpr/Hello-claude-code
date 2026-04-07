@@ -344,6 +344,11 @@ router.get('/summary', async (req, res) => {
   }
 });
 
+// GET /api/ping - Lightweight keep-alive (no DB query)
+router.get('/ping', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // GET /api/health - Health check endpoint
 router.get('/health', async (req, res) => {
   try {

@@ -208,30 +208,35 @@ app.get('/', (req, res) => {
     }
 
     .entry-item {
-      padding: 15px;
-      border-bottom: 1px solid #eee;
-    }
-
-    .entry-item:last-child {
-      border-bottom: none;
+      padding: 16px;
+      margin-bottom: 12px;
+      background: #f8f9fa;
+      border-radius: 10px;
+      border-left: 4px solid #667eea;
     }
 
     .entry-date {
       font-weight: 600;
       color: #667eea;
       margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .entry-stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 10px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
       margin-bottom: 8px;
     }
 
     .stat {
       font-size: 0.9rem;
       color: #666;
+      background: white;
+      padding: 4px 10px;
+      border-radius: 6px;
     }
 
     .stat strong {
@@ -239,9 +244,53 @@ app.get('/', (req, res) => {
     }
 
     .entry-note {
-      font-style: italic;
-      color: #888;
+      margin-top: 10px;
+      padding: 10px 14px;
+      background: white;
+      border-radius: 8px;
+      color: #555;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      border-left: 3px solid #9C27B0;
+    }
+
+    .reflections-section {
+      margin-top: 30px;
+    }
+
+    .reflections-section h3 {
+      color: #333;
+      margin-bottom: 15px;
+      font-size: 1.2rem;
+    }
+
+    .reflection-card {
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #f5f3ff 0%, #faf5ff 100%);
+      border-radius: 10px;
+      border-left: 4px solid #9C27B0;
+    }
+
+    .reflection-date {
+      font-size: 0.85rem;
+      color: #9C27B0;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .reflection-text {
+      color: #444;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .reflection-metrics {
+      display: flex;
+      gap: 8px;
       margin-top: 8px;
+      font-size: 0.85rem;
+      color: #888;
     }
 
     .tabs {
@@ -493,8 +542,8 @@ app.get('/', (req, res) => {
         </div>
 
         <div class="form-group">
-          <label>📋 Opomba (opcijsko)</label>
-          <textarea id="note" name="note" placeholder="Dodaj komentar, opombo ali kaj zanimivega..."></textarea>
+          <label>📝 Večerna refleksija (opcijsko)</label>
+          <textarea id="note" name="note" placeholder="Kako je bil dan? Kaj bi naredil drugače? Energija, spanec, hrana..."></textarea>
         </div>
 
         <button type="submit" class="btn" id="submitBtn">Shrani vnos</button>
@@ -551,6 +600,14 @@ app.get('/', (req, res) => {
           </div>
         </div>
 
+        <!-- Refleksije pod grafi -->
+        <div class="reflections-section" id="reflectionsSection">
+          <h3>📝 Večerne refleksije</h3>
+          <div id="reflectionsList">
+            <p style="text-align: center; color: #999;">Nalaganje...</p>
+          </div>
+        </div>
+
         <!-- CSV Export -->
         <div style="text-align: center; margin-top: 20px;">
           <a href="/api/export/csv" class="export-link" download>📥 Izvozi v CSV (Excel)</a>
@@ -602,6 +659,7 @@ app.get('/', (req, res) => {
           loadWeekSummary();
           loadCharts(currentDays);
           loadWellbeingChart(currentDays);
+          loadReflections();
         }
       });
     });
@@ -705,6 +763,7 @@ app.get('/', (req, res) => {
           loadWeekSummary();
           loadCharts(currentDays);
           loadWellbeingChart(currentDays);
+          loadReflections();
         } else {
           showMessage('❌ ' + (data.error || 'Napaka pri shranjevanju'), 'error');
         }
@@ -1156,24 +1215,54 @@ app.get('/', (req, res) => {
       }
     }
 
+    // Naloži refleksije (vnosi z note poljem)
+    async function loadReflections() {
+      try {
+        const response = await fetch('/api/entries?limit=50');
+        const data = await response.json();
+
+        const list = document.getElementById('reflectionsList');
+        if (!data.entries) return;
+
+        // Filtriraj samo vnose z note
+        const withNotes = data.entries.filter(e => e.note && e.note.trim());
+        const last5 = withNotes.slice(0, 5);
+
+        if (last5.length > 0) {
+          list.innerHTML = last5.map(entry => {
+            const date = new Date(entry.timestamp);
+            const dateStr = date.toLocaleDateString('sl-SI', {
+              weekday: 'short', day: 'numeric', month: 'short'
+            });
+            const timeStr = date.toLocaleTimeString('sl-SI', {
+              hour: '2-digit', minute: '2-digit'
+            });
+            return \`
+              <div class="reflection-card">
+                <div class="reflection-date">\${dateStr} \${timeStr}</div>
+                <div class="reflection-text">\${entry.note}</div>
+                <div class="reflection-metrics">
+                  <span>E:\${entry.energy}</span>
+                  <span>M:\${entry.mood}</span>
+                  <span>S:\${entry.stress}</span>
+                </div>
+              </div>
+            \`;
+          }).join('');
+        } else {
+          list.innerHTML = '<p style="text-align: center; color: #999; font-size: 0.9rem;">Še ni refleksij. Dodaj opombo ob naslednjem vnosu.</p>';
+        }
+      } catch (error) {
+        console.error('Error loading reflections:', error);
+      }
+    }
+
     // Naloži podatke ob nalaganju strani
     loadEntries();
-
-    // DEBUGGING: Avtomatsko naloži grafe ob page load za testiranje
-    console.log('🔧 AUTO-LOADING CHARTS FOR DEBUGGING');
-    setTimeout(() => {
-      console.log('🔧 Loading charts with days=30 for debugging...');
-      loadWeekSummary();
-      loadCharts(30);
-      loadWellbeingChart(30);
-    }, 2000); // Počaka 2 sekundi po page load
-
-    // Grafe in povzetek naložimo samo ko uporabnik klikne na "Grafi" tab
 
     // Osveži vsakih 30 sekund (samo vnose, ne grafov)
     setInterval(() => {
       loadEntries();
-      // Ne osvežujemo grafov avtomatsko, da ne prekinemo uporabnikovega ogleda
     }, 30000);
   </script>
 </body>
